@@ -1,4 +1,4 @@
-PROGRAM_VERSION = "1.0.0"
+PROGRAM_VERSION = "1.0.1"
 
 PM_VERB = ["slajdnout do DMs",
             "střelit PM",
