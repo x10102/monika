@@ -141,7 +141,7 @@ class WikidotApplicationsModule(ModuleBase):
                         color=discord.Colour.blurple(),
                     )
                     embed.add_field(name="Zpráva", value=f"```{application.text}```")
-                    await channel.send(embed=embed, view=WDAppConfirmView(application, appl))
+                    await channel.send(embed=embed, view=WDAppConfirmView(application, appl, self))
 
                 for unresolved in WDApplication.select().where(~WDApplication.resolved):
                     if not any([a.user.id == unresolved.user_id for a in applications]):
@@ -162,3 +162,7 @@ class WikidotApplicationsModule(ModuleBase):
         await ctx.interaction.response.defer()
         new_count = await self.check_applications()
         await ctx.interaction.followup.send(f"{print_application_number(new_count)}", ephemeral=True) 
+
+    def cog_unload(self):
+        self.check_applications.cancel()
+        return super().cog_unload()
