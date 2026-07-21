@@ -60,12 +60,13 @@ class StarboardModule(ModuleBase):
         message_model.save()
         channel = await self.bot.fetch_channel(payload.channel_id)
         starboard_channel = await self.bot.fetch_channel(self.channel)
-        if not isinstance(channel, discord.TextChannel) or not isinstance(starboard_channel, discord.TextChannel):
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)) or not isinstance(starboard_channel, discord.TextChannel):
             error(f"Attempted to fetch message from invalid channel type, channel ID is {payload.channel_id}")
             console = cast(discord.abc.Messageable, self.bot.get_channel(self.console))
             await console.send("Pokus o načtení špatného typu kanálu v on_raw_reaction_add (TOHLE JE DEFINITIVNĚ BUG)")
             return
         message = await channel.fetch_message(payload.message_id)
+        
 
         star_embed = discord.Embed()
         star_embed.set_author(name=f"{message.author.display_name}", icon_url=message.author.display_avatar.url)
