@@ -33,6 +33,7 @@ class WDApplication(ModelBase):
     resolved_by = ForeignKeyField(User, backref='applications', null=True)
     resolved_externally = BooleanField(default=False)
     accepted = BooleanField(null=True)
+    embed_id = IntegerField(null=True, default=None)
 
 class LostCycle(ModelBase):
     id = AutoField()

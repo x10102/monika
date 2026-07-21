@@ -114,6 +114,17 @@ class WikidotApplicationsModule(ModuleBase):
             info("Scheduled check task")
             self.check_applications.start()
     
+    async def disable_resolved_embed(self, application: WDApplication):
+        # Just cast it here because we already checked the type in check_applications
+        channel = cast(discord.TextChannel, self.bot.get_channel(self.console_channel))
+        org_embed_msg = await channel.fetch_message(application.embed_id)
+        org_embed = org_embed_msg.embeds[0]
+        org_embed.colour = discord.Colour.dark_grey()
+        org_embed.title = "Žádost vyřešena na Wikidotu"
+        org_view = discord.ui.View.from_message(org_embed_msg, timeout=None)
+        org_view.disable_all_items()
+        await org_embed_msg.edit(embed=org_embed, view=org_view)
+
     @tasks.loop(minutes=30)
     async def check_applications(self):
         info("Running check task")
@@ -133,7 +144,6 @@ class WikidotApplicationsModule(ModuleBase):
                     count += 1
                     appl = WDApplication(user_id = application.user.id, username = application.user.name, unix_name = application.user.unix_name, text = application.text)
                     info(f"New application recorded (User: {application.user})")
-                    appl.save()
                     
                     embed = discord.Embed(
                         title="Žádost čeká na schválení",
@@ -141,7 +151,9 @@ class WikidotApplicationsModule(ModuleBase):
                         color=discord.Colour.blurple(),
                     )
                     embed.add_field(name="Zpráva", value=f"```{application.text}```")
-                    await channel.send(embed=embed, view=WDAppConfirmView(application, appl, self))
+                    embed_message = await channel.send(embed=embed, view=WDAppConfirmView(application, appl, self))
+                    appl.embed_id = embed_message.id
+                    appl.save()
 
                 for unresolved in WDApplication.select().where(~WDApplication.resolved):
                     if not any([a.user.id == unresolved.user_id for a in applications]):
@@ -150,6 +162,9 @@ class WikidotApplicationsModule(ModuleBase):
                         unresolved.resolved_externally = True
                         unresolved.accepted = None
                         unresolved.save()
+                        if unresolved.embed_id is not None:
+                            self.disable_resolved_embed(unresolved)
+
         except Exception as e:
             error(f"Error encountered in check task: {str(e)}")
             channel = self.bot.get_channel(int(config.get("channels.console")))
