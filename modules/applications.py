@@ -145,6 +145,7 @@ class WikidotApplicationsModule(ModuleBase):
 
                 for unresolved in WDApplication.select().where(~WDApplication.resolved):
                     if not any([a.user.id == unresolved.user_id for a in applications]):
+                        info(f"Application for {unresolved.username} seems to be resolved externally, marking as done.")
                         unresolved.resolved = True
                         unresolved.resolved_externally = True
                         unresolved.accepted = None
