@@ -7,3 +7,5 @@ __pycache__
 *.db
 .mypy_cache
 *.json
+*.old
+*.txt
