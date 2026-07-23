@@ -1,11 +1,11 @@
 from core.modulebase import ModuleBase
 import discord
 from discord.ext.commands import slash_command
-from logging import critical, info
+from logging import critical, info, warning
 from core.models import WDApplication, AntispamTriggerEvent, LostCycle, StarboardPinnedMessage
-from constants import PROGRAM_VERSION
+from constants import PROGRAM_VERSION, CONFIG_LOCKED_KEYS
 from core.singletons import config
-
+from utils.textutils import string_to_json_type, JSONNull
 
 class BasicModule(ModuleBase):
 
@@ -77,6 +77,31 @@ class BasicModule(ModuleBase):
         config_text += f"Načtené moduly:\n{loaded_str}```"
         # TODO: Finish this
         await ctx.respond(config_text)
+
+    @discord.default_permissions(administrator=True)
+    @slash_command(name="setconfig", description="Změní hodnotu v konfiguraci")
+    @discord.option("Název", type=discord.SlashCommandOptionType.string, required=True, description="Klíč v konfiguračním souboru")
+    @discord.option("Hodnota", type=discord.SlashCommandOptionType.string, required=True, description="Nová hodnota")
+    async def config_set_key(self, ctx: discord.ApplicationContext, key: str, value: str):
+        if key in CONFIG_LOCKED_KEYS:
+            warning(f"Rejected request to change protected config key \"{key}\" to \"{value}\" by {ctx.user.name} (ID: {ctx.user.id})")
+            await ctx.respond("Toto nastavení nelze z bezpečnostních důvodů změnit")
+            return
+        converted_val = string_to_json_type(value)
+        if converted_val is None:
+            await ctx.respond("Neplatný formát, všechny hodnoty seznamu musí být stejného typu")
+            info(f"Config key \"{key}\" was not changed to \"{value}\", couldn't parse list")
+            return
+        if isinstance(converted_val, JSONNull):
+            config.set(key, None)
+        else:
+            config.set(key, converted_val)
+        try:
+            config.write_to_json()
+            info(f"Config key \"{key}\" set to \"{value}\" by {ctx.user.name} (ID: {ctx.user.id})")
+            await ctx.respond(f"Konfigurace `{key}` byla nastavena na hodnotu `{converted_val}`")
+        except (OSError, IOError):
+            await ctx.respond("Konfiguraci nelze zapsat: Chyba I/O")
 
     @discord.default_permissions(administrator=True)
     @slash_command(name="ping", description="Mňau")

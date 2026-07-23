@@ -54,7 +54,19 @@ class ConfigLoader():
             return default
         
     def set(self, key: str, value: Any) -> None:
-        self._config[key] = value
+        keys = key.split('.')
+        key_count = len(keys)
+        if key_count == 1:
+            self._config[key] = value
+            return
+        current = self._config
+        for idx, k in enumerate(keys):
+            if idx == key_count-1:
+                current[k] = value
+                break
+            if k not in current:
+                current[k] = {}
+            current = current[k]
 
     def get(self, key: str, default: T | None = None) -> T | None:
         keys = key.split('.')
@@ -103,4 +115,13 @@ class ConfigLoader():
             error(f"Failed to load config: JSON decode error ({str(e)})")
             return False
         return True
+
+    def write_to_json(self, path: DescriptorOrPath = 'config.json') -> None:
+        """
+        Writes the config to a JSON file.
+
+        Be aware that unlike load_from_json(), this does not handle serialization or IO errors
+        """
+        with open(path, 'w', encoding='utf-8') as configfile:
+            json.dump(self._config, configfile, indent=4)
     

@@ -8,7 +8,7 @@ from logging import info, error
 from core.models import WDApplication
 from utils.discordutils import check_valid_interaction, ensure_user
 from utils.textutils import print_application_number
-from utils.wdutils import wd_appl_action, ApplAction
+from utils.wikidot import wd_appl_action, ApplAction
 from datetime import datetime
 from typing import cast
 
