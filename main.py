@@ -1,5 +1,6 @@
 # Builtins
 import os
+import pathlib
 
 # External
 from peewee import Model
@@ -13,7 +14,7 @@ import discord
 from core.exceptions import MissingConfigError
 from core.modulebase import ModuleBase
 from core.singletons import config
-from constants import PROGRAM_VERSION
+from constants import PROGRAM_VERSION, RESTART_FLAG_NAME
 from core.models import LostCycle, LostCycleReset, database, WDApplication, User, AntispamTriggerEvent, SpamAttachmentHash, StarboardPinnedMessage
 
 # Modules
@@ -50,7 +51,20 @@ def setup_logger(filename="bot.log"):
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
         
-if __name__ == "__main__":
+@bot.slash_command(name='reload', description='Restartuje bota a znovu načte konfiguraci')
+async def reload(ctx: discord.ApplicationContext):
+    critical(f"Received restart command from {ctx.user.name} ({ctx.user.id})")
+    await ctx.respond("Restartuji...")
+    loaded = list(bot.cogs.keys())
+    for cog in loaded:
+        bot.remove_cog(cog)
+    # Create a restart flag so that the reloader knows not to exit yet
+    pathlib.Path(os.getcwd(), RESTART_FLAG_NAME).touch()
+    await bot.close()
+    # Still leaving this in just in case bot.close doesn't crash in the future
+    exit(0)
+
+def main():
     config.load_from_json()
     setup_logger(config.get("log_file", "bot.log"))
     info("Logger initialized")
@@ -96,3 +110,5 @@ if __name__ == "__main__":
         exit(2)
 
     bot.run(token)
+
+main()

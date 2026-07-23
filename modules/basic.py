@@ -37,8 +37,10 @@ class BasicModule(ModuleBase):
     @slash_command(name="kill", description="Ukončí bota v případě že se zblázní")
     async def kill_process(self, ctx: discord.ApplicationContext):
         critical(f"Received emergency shutdown command from {ctx.user.name} ({ctx.user.id}), exiting immediately")
-        await ctx.respond("i guess bro")
+        await ctx.respond("Bylo mi ctí s vámi sloužit, kapitáne. *střelí se do hlavy*")
         await self.bot.close()
+        # We never actually get to the exit() because bot.close() raises an exception somewhere in aiohttp
+        # Leaving it in for the aura (loss)
         exit(67)
 
     @discord.default_permissions(administrator=True)
