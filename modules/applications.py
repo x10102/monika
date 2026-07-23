@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import cast
 
 from constants import PM_VERB
-from core.exceptions import MissingConfigError
+from core.botbase import MonikaBot
 from core.singletons import config
 
 class WDAppConfirmView(discord.ui.View):
@@ -96,8 +96,8 @@ class WikidotApplicationsModule(ModuleBase):
             f'Uživatel: {self.wiki_user}'
         ]
 
-    def __init__(self, bot: discord.Bot):
-        self.bot: discord.Bot = bot
+    def __init__(self, bot: MonikaBot):
+        self.bot: MonikaBot = bot
         wiki_cfg = config.scope("wikidot")
         console_channel = config.get("channels.console")
         wiki_name = wiki_cfg.get("name")

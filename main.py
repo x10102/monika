@@ -4,13 +4,13 @@ import pathlib
 
 # External
 from peewee import Model
-from dotenv import load_dotenv
 import logging
 from logging import info, warning, critical, error
 import nest_asyncio # type: ignore[import-untyped]
 import discord
 
 # Internal
+from core.botbase import MonikaBot
 from core.exceptions import MissingConfigError
 from core.modulebase import ModuleBase
 from core.singletons import config
@@ -25,7 +25,7 @@ from modules.antispam import AntispamModule
 from modules.imagetools import ImageToolsModule
 from modules.starboard import StarboardModule
 
-bot = discord.Bot(intents=discord.Intents.all())
+bot = MonikaBot(intents=discord.Intents.all())
 
 LOAD_MODULES: list[type[ModuleBase]] = [BasicModule, LostModule, AntispamModule, WikidotApplicationsModule, StarboardModule]
 CREATE_MODELS: list[Model] = [User, WDApplication, LostCycle, LostCycleReset, AntispamTriggerEvent, SpamAttachmentHash, StarboardPinnedMessage]
@@ -79,8 +79,6 @@ def main():
     database.create_tables(CREATE_MODELS)
 
     info("Loading modules")
-    
-    loaded = []
 
     overrides = config.scope("overrides")
 
@@ -90,19 +88,16 @@ def main():
             continue
         missing_required = config.keys_missing(module.config_required())
         if len(missing_required) != 0:
-            error(f"Not loading module {module.name()} - missing required keys: [{', '.join(missing_required)}]")
+            error(f"Not loading module {module.name()} - missing required config: [{', '.join(missing_required)}]")
             continue
         try:
-            mod = module(bot)
-            bot.add_cog(mod)
+            bot.load_module(module(bot))
             info(f"Loaded module: {module.name()}")
-            loaded.append(mod)
+        # TODO: This is redundant since we are checking for the required keys now
         except MissingConfigError:
             warning(f"Not loading module: {module.name()} - due to missing configuration")
         except Exception as e:
             warning(f"Error while loading module: {module.name()}: {str(e)}")
-
-    setattr(bot, 'loaded_modules', loaded)
 
     token = config.get("bot_token")
     if not token:

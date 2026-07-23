@@ -12,6 +12,7 @@ from discord.utils import MISSING
 from core.modulebase import ModuleBase
 from core.singletons import config
 from core.models import StarboardPinnedMessage
+from core.botbase import MonikaBot
 from utils.discordutils import get_message_url
 
 class StarboardModule(ModuleBase):
@@ -38,8 +39,8 @@ class StarboardModule(ModuleBase):
             f'Ignorované kanály: {", ".join(excluded)}'
         ]
 
-    def __init__(self, bot: discord.Bot):
-        self.bot: discord.Bot = bot
+    def __init__(self, bot: MonikaBot):
+        self.bot: MonikaBot = bot
         self.threshold: int = config.get_value('starboard.threshold')
         self.channel: int = config.get_value('channels.starboard')
         self.console: int = config.get_value('channels.console')

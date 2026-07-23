@@ -12,7 +12,7 @@ from constants import THE_NUMBERS, KOTESENI
 from utils.discordutils import ensure_user
 from core.models import LostCycle, LostCycleReset
 from core.singletons import config
-
+from core.botbase import MonikaBot
 from core.modulebase import ModuleBase
 
 # !WARNING: SHIT CODE AHEAD
@@ -38,8 +38,8 @@ class LostModule(ModuleBase):
             f'ID Kanálu: {self.channel_id}'
         ]
 
-    def __init__(self, bot: discord.Bot):
-        self.bot: discord.Bot = bot
+    def __init__(self, bot: MonikaBot):
+        self.bot: MonikaBot = bot
         self.iterations = 0
         self.channel_id = config.get_value("channels.lost")
         self.role_id = config.get_value("roles.lost")

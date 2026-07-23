@@ -15,6 +15,7 @@ from core.exceptions import MissingConfigError
 
 from core.modulebase import ModuleBase
 from core.singletons import config
+from core.botbase import MonikaBot
 
 from core.models import AntispamTriggerEvent, AntiSpamResolveAction, SpamAttachmentHash
 
@@ -128,8 +129,8 @@ class AntispamModule(ModuleBase):
             f'Trvání timeoutu za spam: {self.default_mute.seconds//(60*60)} hodin'
         ]
 
-    def __init__(self, bot: discord.Bot):
-        self.bot: discord.Bot = bot
+    def __init__(self, bot: MonikaBot):
+        self.bot: MonikaBot = bot
         self.previous_messages: dict[int, MessageContent] = {}
         self.offending_messages: dict[int, set[discord.Message]] = {}
         self.repeat_counters: dict[int, int] = {}

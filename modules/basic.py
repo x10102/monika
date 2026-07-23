@@ -6,6 +6,8 @@ from core.models import WDApplication, AntispamTriggerEvent, LostCycle, Starboar
 from constants import PROGRAM_VERSION, CONFIG_LOCKED_KEYS
 from core.singletons import config
 from utils.textutils import string_to_json_type, JSONNull
+from core.botbase import MonikaBot
+
 
 class BasicModule(ModuleBase):
 
@@ -27,7 +29,7 @@ class BasicModule(ModuleBase):
             f'ID Admin role: {self.admin_role_id}'
         ]
 
-    def __init__(self, bot: discord.Bot):
+    def __init__(self, bot: MonikaBot):
         super().__init__()
         self.console_id = int(config.get_value('channels.console'))
         self.admin_role_id = int(config.get_value('roles.admin'))
@@ -68,9 +70,8 @@ class BasicModule(ModuleBase):
     @slash_command(name="config", description="Zobrazí konfiguraci")
     async def view_config(self, ctx: discord.ApplicationContext):
         # unnghhh I hate global state
-        loaded_modules: list[ModuleBase] = getattr(self.bot, 'loaded_modules')
         loaded_str = ""
-        for mod in loaded_modules:
+        for mod in self.bot.loaded_modules:
             loaded_str += f'\t{mod.name()}\n'
             for line in mod.print_config():
                 loaded_str += f'\t\t{line}\n'
@@ -120,7 +121,6 @@ class BasicModule(ModuleBase):
 
     @ModuleBase.listener()
     async def on_ready(self):
-        info(f"{self.bot.user} is ready to go!")
         if(config.get("overrides.sync_commands_on_startup", "false") == "true"):
             info("Syncing commands")
             await self.bot.sync_commands()
