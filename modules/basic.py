@@ -87,11 +87,11 @@ class BasicModule(ModuleBase):
     async def config_set_key(self, ctx: discord.ApplicationContext, key: str, value: str):
         if key in CONFIG_LOCKED_KEYS:
             warning(f"Rejected request to change protected config key \"{key}\" to \"{value}\" by {ctx.user.name} (ID: {ctx.user.id})")
-            await ctx.respond("Toto nastavení nelze z bezpečnostních důvodů změnit")
+            await ctx.respond("Toto nastavení nelze z bezpečnostních důvodů změnit", ephemeral=True)
             return
         converted_val = string_to_json_type(value)
         if converted_val is None:
-            await ctx.respond("Neplatný formát, všechny hodnoty seznamu musí být stejného typu")
+            await ctx.respond("Neplatný formát, všechny hodnoty seznamu musí být stejného typu", ephemeral=True)
             info(f"Config key \"{key}\" was not changed to \"{value}\", couldn't parse list")
             return
         if isinstance(converted_val, JSONNull):
@@ -103,7 +103,7 @@ class BasicModule(ModuleBase):
             info(f"Config key \"{key}\" set to \"{value}\" by {ctx.user.name} (ID: {ctx.user.id})")
             await ctx.respond(f"Konfigurace `{key}` byla nastavena na hodnotu `{converted_val}`")
         except (OSError, IOError):
-            await ctx.respond("Konfiguraci nelze zapsat: Chyba I/O")
+            await ctx.respond("Konfiguraci nelze zapsat: Chyba I/O", ephemeral=True)
 
     @discord.default_permissions(administrator=True)
     @slash_command(name="ping", description="Mňau")
@@ -116,7 +116,7 @@ class BasicModule(ModuleBase):
     async def cmd_sync(self, ctx: discord.ApplicationContext):
         info(f"Synchronizing commands at request of {ctx.user.name} ({ctx.user.id})")
         await self.bot.sync_commands()
-        await ctx.respond("Synchronizace dokončena, pro použití nových příkazů restartujte Discord (CTRL+R)")
+        await ctx.respond("Synchronizace dokončena, pro použití nových příkazů restartujte Discord (CTRL+R)", ephemeral=True)
 
     @ModuleBase.listener()
     async def on_ready(self):
