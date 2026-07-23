@@ -33,6 +33,24 @@ class StarboardModule(ModuleBase):
         self.console: int = config.get_value('channels.console')
         self.excluded: set[int] = set(config.get('starboard.excluded_channels') or {})
         self.emoji: set[discord.PartialEmoji] = {discord.PartialEmoji.from_str(e) for e in config.get_value('starboard.emoji')}
+        purge_days = config.get('starboard.db_purge_days')
+        if purge_days:
+            self.purge_hours = int(purge_days) * 24
+            # Just create the Loop object manually, putting a dynamic value in a decorator is weird
+            self.purge_loop_handle = tasks.Loop(self.purge_old_messages,
+                                                MISSING,
+                                                self.purge_hours,
+                                                MISSING,
+                                                MISSING,
+                                                None,
+                                                True,
+                                                MISSING,
+                                                False)
+            self.purge_loop_handle.start()
+            tasks.loop()
+            info(f"Scheduled DB purge for starboard messsages older than {purge_days} days")
+        else:
+            warning("Expiration time for starboard records is not set, this might make the database grow very fast in large servers!")
 
     @ModuleBase.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -124,3 +142,15 @@ class StarboardModule(ModuleBase):
             return
         message_model.reaction_count -= 1
         message_model.save()
+
+    async def purge_old_messages(self):
+        cutoff = datetime.now() - timedelta(hours=self.purge_hours)
+
+        query = StarboardPinnedMessage.delete()\
+            .where(
+                (StarboardPinnedMessage.created_at < cutoff) &
+                (StarboardPinnedMessage.pinned_at.is_null()))
+        
+        deleted_count = query.execute()
+
+        info(f"Purged {deleted_count} expired starboard records")
