@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import discord
 from discord.ext import tasks
 from discord.utils import MISSING
+from cachetools import LFUCache
 
 # Internal
 from core.modulebase import ModuleBase
@@ -30,11 +31,12 @@ class StarboardModule(ModuleBase):
     
     def print_config(self):
         emoji = [str(e.name) for e in self.emoji]
+        excluded = [str(e) for e in self.excluded]
         return [
             f'ID Starboard kanálu: {self.channel}',
             f'Hranice pro pin: {self.threshold}',
             f'Sledované reakce: {", ".join(emoji)}',
-            f'Ignorované kanály: {", ".join(self.excluded)}'
+            f'Ignorované kanály: {", ".join(excluded)}'
         ]
 
     def __init__(self, bot: discord.Bot):
@@ -44,6 +46,8 @@ class StarboardModule(ModuleBase):
         self.console: int = config.get_value('channels.console')
         self.excluded: set[int] = set(config.get('starboard.excluded_channels') or {})
         self.emoji: set[discord.PartialEmoji] = {discord.PartialEmoji.from_str(e) for e in config.get_value('starboard.emoji')}
+        self._pinned_cache: LFUCache = LFUCache(maxsize=250)
+
         purge_days = config.get('starboard.db_purge_days')
         if purge_days:
             self.purge_hours = int(purge_days) * 24
@@ -72,9 +76,12 @@ class StarboardModule(ModuleBase):
             return
         if payload.channel_id in self.excluded:
             return
+        if self._pinned_cache.get(payload.message_id):
+            return
         already_pinned = StarboardPinnedMessage.select().where((StarboardPinnedMessage.pinned_at.is_null(False))\
                                                                & (StarboardPinnedMessage.message_id == payload.message_id)).exists()
         if already_pinned:
+            self._pinned_cache[payload.message_id] = True
             return
         message_model: StarboardPinnedMessage = \
             StarboardPinnedMessage.get_or_create(message_id = payload.message_id,
