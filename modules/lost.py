@@ -31,6 +31,12 @@ class LostModule(ModuleBase):
     @staticmethod
     def config_required():
         return ['channels.lost', 'roles.lost']
+    
+    def print_config(self):
+        return [
+            f'ID Role: {self.role_id}',
+            f'ID Kanálu: {self.channel_id}'
+        ]
 
     def __init__(self, bot: discord.Bot):
         self.bot: discord.Bot = bot
@@ -133,5 +139,8 @@ class LostModule(ModuleBase):
             creset.user = responder
             creset.save()
 
-
+    def cog_unload(self):
+        self.lost_prompt.cancel()
+        self.lost_failed.cancel()
+        return super().cog_unload()
     

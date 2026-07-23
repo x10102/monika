@@ -1,10 +1,12 @@
 # Builtins
 from typing import cast
-from logging import info, error
-from datetime import datetime
+from logging import info, error, warning
+from datetime import datetime, timedelta
 
 # External
 import discord
+from discord.ext import tasks
+from discord.utils import MISSING
 
 # Internal
 from core.modulebase import ModuleBase
@@ -25,6 +27,15 @@ class StarboardModule(ModuleBase):
     @staticmethod
     def config_required():
         return ['channels.starboard', 'channels.console', 'starboard.threshold', 'starboard.emoji']
+    
+    def print_config(self):
+        emoji = [str(e.name) for e in self.emoji]
+        return [
+            f'ID Starboard kanálu: {self.channel}',
+            f'Hranice pro pin: {self.threshold}',
+            f'Sledované reakce: {", ".join(emoji)}',
+            f'Ignorované kanály: {", ".join(self.excluded)}'
+        ]
 
     def __init__(self, bot: discord.Bot):
         self.bot: discord.Bot = bot

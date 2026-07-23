@@ -79,9 +79,10 @@ if __name__ == "__main__":
             error(f"Not loading module {module.name()} - missing required keys: [{', '.join(missing_required)}]")
             continue
         try:
-            bot.add_cog(module(bot))
+            mod = module(bot)
+            bot.add_cog(mod)
             info(f"Loaded module: {module.name()}")
-            loaded.append(module)
+            loaded.append(mod)
         except MissingConfigError:
             warning(f"Not loading module: {module.name()} - due to missing configuration")
         except Exception as e:

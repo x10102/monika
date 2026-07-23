@@ -2,7 +2,7 @@ from core.modulebase import ModuleBase
 import discord
 from discord.ext.commands import slash_command
 from logging import critical, info
-from core.models import WDApplication, AntispamTriggerEvent, LostCycle
+from core.models import WDApplication, AntispamTriggerEvent, LostCycle, StarboardPinnedMessage
 from constants import PROGRAM_VERSION
 from core.singletons import config
 
@@ -19,10 +19,18 @@ class BasicModule(ModuleBase):
     
     @staticmethod
     def config_required():
-        return ['channels.console']
+        return ['channels.console', 'roles.admin']
+
+    def print_config(self):
+        return [
+            f'ID Console kanálu: {self.console_id}',
+            f'ID Admin role: {self.admin_role_id}'
+        ]
 
     def __init__(self, bot: discord.Bot):
         super().__init__()
+        self.console_id = int(config.get_value('channels.console'))
+        self.admin_role_id = int(config.get_value('roles.admin'))
         self.bot = bot
 
     @discord.default_permissions(administrator=True)
@@ -42,22 +50,33 @@ class BasicModule(ModuleBase):
         external_count = WDApplication.select().where(WDApplication.resolved_externally).count()
         antispam_trigger_count = AntispamTriggerEvent.select().count()
         lost_cycle_count = LostCycle.select().count()
+        starboard_pinned_count = StarboardPinnedMessage.select().where(StarboardPinnedMessage.pinned_at.is_null(False)).count()
+        starboard_record_count = StarboardPinnedMessage.select().count()
         stats_text = (f"```Monika.aic verze {PROGRAM_VERSION}\n"
                       f"Přijatých žádostí: {accepted_count}\n"
                       f"Zamítnutých žádostí: {rejected_count}\n"
                       f"Nezapočítaných žádostí: {external_count}\n"
                       f"Události detekce spamu: {antispam_trigger_count}\n"
-                      f"Cykly ztraceného tlačítka: {lost_cycle_count}```")
+                      f"Cykly ztraceného tlačítka: {lost_cycle_count}\n"
+                      f"Připnutých zpráv: {starboard_pinned_count}\n"
+                      f"Záznamů ve starboard tabulce: {starboard_record_count}```")
         await ctx.respond(stats_text)
 
     @discord.default_permissions(administrator=True)
     @slash_command(name="config", description="Zobrazí konfiguraci")
     async def view_config(self, ctx: discord.ApplicationContext):
         # unnghhh I hate global state
-        loaded_modules = self.bot.__getattribute__("loaded_modules")
-        config_text = (f"Konfigurace Monika.aic verze {PROGRAM_VERSION}\n")
+        loaded_modules: list[ModuleBase] = getattr(self.bot, 'loaded_modules')
+        loaded_str = ""
+        for mod in loaded_modules:
+            loaded_str += f'\t{mod.name()}\n'
+            for line in mod.print_config():
+                loaded_str += f'\t\t{line}\n'
+            loaded_str += '\n'
+        config_text = f"```Konfigurace Monika.aic verze {PROGRAM_VERSION}\n\n"
+        config_text += f"Načtené moduly:\n{loaded_str}```"
         # TODO: Finish this
-        await ctx.respond("teehee :3")
+        await ctx.respond(config_text)
 
     @discord.default_permissions(administrator=True)
     @slash_command(name="ping", description="Mňau")
@@ -78,5 +97,5 @@ class BasicModule(ModuleBase):
         if(config.get("overrides.sync_commands_on_startup", "false") == "true"):
             info("Syncing commands")
             await self.bot.sync_commands()
-            channel = self.bot.get_channel(int(config.get("channels.console")))
+            channel = self.bot.get_channel(self.console_id)
             await channel.send("Nové příkazy synchronizovány s Discord bot API, Čýmsi nezapomeň upravit .env")

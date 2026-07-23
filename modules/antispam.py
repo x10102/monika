@@ -120,6 +120,13 @@ class AntispamModule(ModuleBase):
     @staticmethod
     def config_required():
         return ['channels.console', 'roles.admin']
+    
+    def print_config(self):
+        return [
+            f'Počet opakovaných zpráv pro spuštění: {self.spam_limit}',
+            f'Velikost okna pro opakování: {self.repeat_timeout.seconds//60} minut',
+            f'Trvání timeoutu za spam: {self.default_mute.seconds//(60*60)} hodin'
+        ]
 
     def __init__(self, bot: discord.Bot):
         self.bot: discord.Bot = bot

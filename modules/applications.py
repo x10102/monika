@@ -90,6 +90,12 @@ class WikidotApplicationsModule(ModuleBase):
     def config_required():
         ['channels.console', 'wikidot.name', 'wikidot.user', 'wikidot.password']
 
+    def print_config(self):
+        return [
+            f'Wiki: {self.wiki_name}'
+            f'Uživatel: {self.wiki_user}'
+        ]
+
     def __init__(self, bot: discord.Bot):
         self.bot: discord.Bot = bot
         wiki_cfg = config.scope("wikidot")
@@ -97,11 +103,6 @@ class WikidotApplicationsModule(ModuleBase):
         wiki_name = wiki_cfg.get("name")
         wiki_user = wiki_cfg.get("user")
         wiki_password = wiki_cfg.get("password")
-
-        # Why do I even bother with fucking MyPy at this point
-        # That thing is just so stupid
-        # I should NOT have to cast() here
-        # all() is such a simple built in function, a type checker used in a hundred trillion projects should understand it
         self.console_channel: int = int(cast(str, console_channel))
         self.wiki_name: str = cast(str, wiki_name)
         self.wiki_user: str = cast(str, wiki_user)
@@ -113,6 +114,8 @@ class WikidotApplicationsModule(ModuleBase):
             and config.get("overrides.disable_application_check") != 'true':
             info("Scheduled check task")
             self.check_applications.start()
+        else:
+            self.check_applications.cancel()
     
     async def disable_resolved_embed(self, application: WDApplication):
         # Just cast it here because we already checked the type in check_applications

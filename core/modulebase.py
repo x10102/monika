@@ -1,4 +1,5 @@
 from discord import Cog
+from logging import info
 
 class ModuleBase(Cog):
     
@@ -23,5 +24,11 @@ class ModuleBase(Cog):
         """
         return []
     
+    def print_config(self) -> list[str]:
+        return ["Modul neohlásil žádnou konfiguraci"]
+    
     def __str__(self):
         return f"{self.name()} Module, requires config: [{"".join(self.config_required)}]"
+    
+    def cog_unload(self) -> None:
+        info(f"Module {self.name()} has unloaded")
