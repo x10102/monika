@@ -8,6 +8,8 @@ from core.singletons import config
 from utils.textutils import string_to_json_type, JSONNull
 from core.botbase import MonikaBot
 
+async def _autocomplete_cfg_key(ctx: discord.AutocompleteContext):
+        return [k for k in config.print_all_keys() if ctx.value.lower() in k.lower()]
 
 class BasicModule(ModuleBase):
 
@@ -83,8 +85,17 @@ class BasicModule(ModuleBase):
 
     @discord.default_permissions(administrator=True)
     @slash_command(name="setconfig", description="Změní hodnotu v konfiguraci")
-    @discord.option("Název", type=discord.SlashCommandOptionType.string, required=True, description="Klíč v konfiguračním souboru")
-    @discord.option("Hodnota", type=discord.SlashCommandOptionType.string, required=True, description="Nová hodnota")
+    @discord.option("key", 
+                    type=discord.SlashCommandOptionType.string,
+                    required=True,
+                    description="Klíč v konfiguračním souboru",
+                    autocomplete=_autocomplete_cfg_key,
+                    name_localizations={"cs": "název"})
+    @discord.option("value",
+                    type=discord.SlashCommandOptionType.string,
+                    required=True,
+                    description="Nová hodnota",
+                    name_localizations={"cs": "hodnota"})
     async def config_set_key(self, ctx: discord.ApplicationContext, key: str, value: str):
         if key in CONFIG_LOCKED_KEYS:
             warning(f"Rejected request to change protected config key \"{key}\" to \"{value}\" by {ctx.user.name} (ID: {ctx.user.id})")
@@ -94,6 +105,11 @@ class BasicModule(ModuleBase):
         if converted_val is None:
             await ctx.respond("Neplatný formát, všechny hodnoty seznamu musí být stejného typu", ephemeral=True)
             info(f"Config key \"{key}\" was not changed to \"{value}\", couldn't parse list")
+            return
+        current_type = type(config.get(key, None))
+        if current_type is not type(None) and type(converted_val) is not current_type:
+            await ctx.respond(
+                f"Neplatný formát, nelze přepsat konfiguraci typu `{current_type.__name__}` hodnotou typu `{type(converted_val).__name__}`.", ephemeral=True)
             return
         if isinstance(converted_val, JSONNull):
             config.set(key, None)
@@ -105,6 +121,9 @@ class BasicModule(ModuleBase):
             await ctx.respond(f"Konfigurace `{key}` byla nastavena na hodnotu `{converted_val}`")
         except (OSError, IOError):
             await ctx.respond("Konfiguraci nelze zapsat: Chyba I/O", ephemeral=True)
+
+        # I'm starting to notice that even if you write python correctly, it just starts looking like shit after a while
+        # The next bot is gonna be in 100% pure C
 
     @discord.default_permissions(administrator=True)
     @slash_command(name="ping", description="Mňau")

@@ -4,6 +4,7 @@ import copy
 from logging import error
 from dotenv import load_dotenv
 from typing import Any, TypeVar, cast
+from utils.textutils import iterkeys_nested
 
 type DescriptorOrPath = int | str | bytes | os.PathLike[str] | os.PathLike[bytes]
 
@@ -162,4 +163,8 @@ class ConfigLoader():
         """
         with open(path, 'w', encoding='utf-8') as configfile:
             json.dump(self._config, configfile, indent=4)
+
+    def print_all_keys(self) -> list[str]:
+        print("called")
+        return list(iterkeys_nested(self._config))
     
