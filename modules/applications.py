@@ -165,7 +165,7 @@ class WikidotApplicationsModule(ModuleBase):
                         unresolved.accepted = None
                         unresolved.save()
                         if unresolved.embed_id is not None:
-                            self.disable_resolved_embed(unresolved)
+                            await self.disable_resolved_embed(unresolved)
 
         except Exception as e:
             error(f"Error encountered in check task: {str(e)}")
