@@ -132,7 +132,6 @@ class WikidotApplicationsModule(ModuleBase):
     async def check_applications(self):
         info("Running check task")
         count = 0
-        applications = list()
         try:
             with wikidot.Client(username=self.wiki_user, password=self.wiki_password) as client:
 
@@ -159,7 +158,7 @@ class WikidotApplicationsModule(ModuleBase):
                     appl.save()
 
                 for unresolved in WDApplication.select().where(~WDApplication.resolved):
-                    if not any([a.user.id == unresolved.user_id for a in applications]):
+                    if not any(a.user.id == unresolved.user_id for a in site.applications):
                         info(f"Application for {unresolved.username} seems to be resolved externally, marking as done.")
                         unresolved.resolved = True
                         unresolved.resolved_externally = True
