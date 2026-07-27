@@ -6,7 +6,7 @@ import pathlib
 from peewee import Model
 import logging
 from logging import info, warning, critical, error
-import nest_asyncio # type: ignore[import-untyped]
+import nest_asyncio2 # type: ignore[import-untyped]
 import discord
 
 # Internal
@@ -71,7 +71,7 @@ def main():
     info(f"Monika.aic version {PROGRAM_VERSION} starting")
     info("Applying nested asyncio patch")
     # This is needed for running the wikidot library alongside pycord as it uses its own asyncio loop
-    nest_asyncio.apply()
+    nest_asyncio2.apply()
     
     info("Initializing database")
     database.init(config.get("db_file", "applications.db"))
