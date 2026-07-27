@@ -188,4 +188,4 @@ class StarboardPinnedMessage(ModelBase):
     pinned_at = TimestampField(null=True, default=None)
     reaction_count = IntegerField(default=0)
     created_at = TimestampField(default=datetime.now)
-    starboard_id = CharField(15, null=True, default=None)
+    #starboard_id = CharField(15, null=True, default=None)
