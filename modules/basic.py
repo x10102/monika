@@ -2,11 +2,12 @@ from core.modulebase import ModuleBase
 import discord
 from discord.ext.commands import slash_command
 from logging import critical, info, warning
-from core.models import WDApplication, AntispamTriggerEvent, LostCycle, StarboardPinnedMessage
 from constants import PROGRAM_VERSION, CONFIG_LOCKED_KEYS
 from core.singletons import config
 from utils.textutils import string_to_json_type, JSONNull
 from core.botbase import MonikaBot
+import itertools
+import sys
 
 async def _autocomplete_cfg_key(ctx: discord.AutocompleteContext):
         return [k for k in config.print_all_keys() if ctx.value.lower() in k.lower()]
@@ -25,7 +26,7 @@ class BasicModule(ModuleBase):
     def config_required():
         return ['channels.console', 'roles.admin']
 
-    def print_config(self):
+    def format_config(self):
         return [
             f'ID Console kanálu: {self.console_id}',
             f'ID Admin role: {self.admin_role_id}'
@@ -38,44 +39,34 @@ class BasicModule(ModuleBase):
         self.bot = bot
 
     @discord.default_permissions(administrator=True)
-    @slash_command(name="kill", description="Ukončí bota v případě že se zblázní")
+    @discord.slash_command(name="kill", description="Ukončí bota v případě že se zblázní")
     async def kill_process(self, ctx: discord.ApplicationContext):
         critical(f"Received emergency shutdown command from {ctx.user.name} ({ctx.user.id}), exiting immediately")
         await ctx.respond("Bylo mi ctí s vámi sloužit, kapitáne. *střelí se do hlavy*")
         await self.bot.close()
         # We never actually get to the exit() because bot.close() raises an exception somewhere in aiohttp
         # Leaving it in for the aura (loss)
-        exit(67)
+        sys.exit(67)
 
     @discord.default_permissions(administrator=True)
     @slash_command(name="stats", description="Zobrazí statistiky")
     async def view_stats(self, ctx: discord.ApplicationContext):
         info(f"Sending stats as response to {ctx.user.name} ({ctx.user.id})")
-        accepted_count = WDApplication.select().where(WDApplication.accepted).count()
-        rejected_count = WDApplication.select().where(~WDApplication.accepted).count()
-        external_count = WDApplication.select().where(WDApplication.resolved_externally).count()
-        antispam_trigger_count = AntispamTriggerEvent.select().count()
-        lost_cycle_count = LostCycle.select().count()
-        starboard_pinned_count = StarboardPinnedMessage.select().where(StarboardPinnedMessage.pinned_at.is_null(False)).count()
-        starboard_record_count = StarboardPinnedMessage.select().count()
-        stats_text = (f"```Monika.aic verze {PROGRAM_VERSION}\n"
-                      f"Přijatých žádostí: {accepted_count}\n"
-                      f"Zamítnutých žádostí: {rejected_count}\n"
-                      f"Nezapočítaných žádostí: {external_count}\n"
-                      f"Události detekce spamu: {antispam_trigger_count}\n"
-                      f"Cykly ztraceného tlačítka: {lost_cycle_count}\n"
-                      f"Připnutých zpráv: {starboard_pinned_count}\n"
-                      f"Záznamů ve starboard tabulce: {starboard_record_count}```")
+        stats_text = f"```Monika.aic verze {PROGRAM_VERSION}\n"
+        stats = itertools.chain.from_iterable(mod.format_stats() for mod in self.bot.loaded_modules)
+        for line in stats:
+            stats_text += f"{line}\n"
+        stats_text += '```'
         await ctx.respond(stats_text)
 
     @discord.default_permissions(administrator=True)
-    @slash_command(name="config", description="Zobrazí konfiguraci")
+    @discord.slash_command(name="config", description="Zobrazí konfiguraci")
     async def view_config(self, ctx: discord.ApplicationContext):
         # unnghhh I hate global state
         loaded_str = ""
         for mod in self.bot.loaded_modules:
             loaded_str += f'\t{mod.name()}\n'
-            for line in mod.print_config():
+            for line in mod.format_config():
                 loaded_str += f'\t\t{line}\n'
             loaded_str += '\n'
         config_text = f"```Konfigurace Monika.aic verze {PROGRAM_VERSION}\n\n"
@@ -84,7 +75,7 @@ class BasicModule(ModuleBase):
         await ctx.respond(config_text)
 
     @discord.default_permissions(administrator=True)
-    @slash_command(name="setconfig", description="Změní hodnotu v konfiguraci")
+    @discord.slash_command(name="setconfig", description="Změní hodnotu v konfiguraci")
     @discord.option("key", 
                     type=discord.SlashCommandOptionType.string,
                     required=True,
@@ -119,7 +110,7 @@ class BasicModule(ModuleBase):
             config.write_to_json()
             info(f"Config key \"{key}\" set to \"{value}\" by {ctx.user.name} (ID: {ctx.user.id})")
             await ctx.respond(f"Konfigurace `{key}` byla nastavena na hodnotu `{converted_val}`")
-        except (OSError, IOError):
+        except OSError:
             await ctx.respond("Konfiguraci nelze zapsat: Chyba I/O", ephemeral=True)
 
         # I'm starting to notice that even if you write python correctly, it just starts looking like shit after a while
@@ -132,7 +123,7 @@ class BasicModule(ModuleBase):
         await ctx.respond("🐈")
 
     @discord.default_permissions(administrator=True)
-    @slash_command(name="synccommands", description="Synchronizuje příkazy s Discordem po aktualizaci, nepoužívat pokud nevíte co to znamená")
+    @discord.slash_command(name="synccommands", description="Synchronizuje příkazy s Discordem po aktualizaci, nepoužívat pokud nevíte co to znamená")
     async def cmd_sync(self, ctx: discord.ApplicationContext):
         info(f"Synchronizing commands at request of {ctx.user.name} ({ctx.user.id})")
         await self.bot.sync_commands()

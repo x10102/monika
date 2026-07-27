@@ -1,5 +1,6 @@
 # Builtins
 import os
+import sys
 import pathlib
 
 # External
@@ -14,21 +15,23 @@ from core.botbase import MonikaBot
 from core.exceptions import MissingConfigError
 from core.modulebase import ModuleBase
 from core.singletons import config
+from core.models import database, get_core_models
 from constants import PROGRAM_VERSION, RESTART_FLAG_NAME
-from core.models import LostCycle, LostCycleReset, database, WDApplication, User, AntispamTriggerEvent, SpamAttachmentHash, StarboardPinnedMessage
 
 # Modules
 from modules.basic import BasicModule
 from modules.applications import WikidotApplicationsModule
 from modules.lost import LostModule
 from modules.antispam import AntispamModule
-from modules.imagetools import ImageToolsModule
 from modules.starboard import StarboardModule
 
 bot = MonikaBot(intents=discord.Intents.all())
 
-LOAD_MODULES: list[type[ModuleBase]] = [BasicModule, LostModule, AntispamModule, WikidotApplicationsModule, StarboardModule]
-CREATE_MODELS: list[Model] = [User, WDApplication, LostCycle, LostCycleReset, AntispamTriggerEvent, SpamAttachmentHash, StarboardPinnedMessage]
+LOAD_MODULES: list[type[ModuleBase]] = [BasicModule,
+                                        LostModule,
+                                        AntispamModule,
+                                        WikidotApplicationsModule,
+                                        StarboardModule]
 
 # Set up the logging format and target
 # Logs to stdout and "bot.log" by default
@@ -62,7 +65,7 @@ async def reload(ctx: discord.ApplicationContext):
     pathlib.Path(os.getcwd(), RESTART_FLAG_NAME).touch()
     await bot.close()
     # Still leaving this in just in case bot.close doesn't crash in the future
-    exit(0)
+    sys.exit(0)
 
 def main():
     config.load_from_json()
@@ -76,7 +79,7 @@ def main():
     info("Initializing database")
     database.init(config.get("db_file", "applications.db"))
     database.connect()
-    database.create_tables(CREATE_MODELS)
+    database.create_tables(get_core_models())
 
     info("Loading modules")
 
@@ -91,18 +94,20 @@ def main():
             error(f"Not loading module {module.name()} - missing required config: [{', '.join(missing_required)}]")
             continue
         try:
+            required_models = module.required_models()
+            database.create_tables(required_models)
             bot.load_module(module(bot))
-            info(f"Loaded module: {module.name()}")
+            info(f"Loaded module: {module.name()} (Created {len(required_models)} models)")
         # TODO: This is redundant since we are checking for the required keys now
         except MissingConfigError:
             warning(f"Not loading module: {module.name()} - due to missing configuration")
         except Exception as e:
-            warning(f"Error while loading module: {module.name()}: {str(e)}")
+            warning(f"Error while loading module: {module.name()}: {e!r}")
 
     token = config.get("bot_token")
     if not token:
         critical("Discord API token is missing, cannot continue")
-        exit(2)
+        sys.exit(2)
 
     bot.run(token)
 

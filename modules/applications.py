@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import discord
 import wikidot
 import random
@@ -5,7 +7,6 @@ import random
 from discord.ext import tasks
 from core.modulebase import ModuleBase
 from logging import info, error
-from core.models import WDApplication
 from utils.discordutils import check_valid_interaction, ensure_user
 from utils.textutils import print_application_number
 from utils.wikidot import wd_appl_action, ApplAction
@@ -16,8 +17,12 @@ from constants import PM_VERB
 from core.botbase import MonikaBot
 from core.singletons import config
 
+from core.models import User, ModelBase
+from peewee import (AutoField, IntegerField, CharField, TextField, TimestampField, BooleanField, ForeignKeyField)
+
+
 class WDAppConfirmView(discord.ui.View):
-    def __init__(self, application, record: WDApplication, module: "WikidotApplicationsModule"):
+    def __init__(self, application, record: WDApplication, module: WikidotApplicationsModule):
         self.application = application
         self.record = record
         self.module = module
@@ -88,12 +93,22 @@ class WikidotApplicationsModule(ModuleBase):
     
     @staticmethod
     def config_required():
-        ['channels.console', 'wikidot.name', 'wikidot.user', 'wikidot.password']
+        return ['channels.console', 'wikidot.name', 'wikidot.user', 'wikidot.password']
 
-    def print_config(self):
+    def format_config(self):
         return [
-            f'Wiki: {self.wiki_name}'
+            f'Wiki: {self.wiki_name}',
             f'Uživatel: {self.wiki_user}'
+        ]
+
+    def format_stats(self):
+        accepted_count = WDApplication.select().where(WDApplication.accepted).count()
+        rejected_count = WDApplication.select().where(~WDApplication.accepted).count()
+        external_count = WDApplication.select().where(WDApplication.resolved_externally).count()
+        return [
+            f"Přijatých žádostí: {accepted_count}",
+            f"Zamítnutých žádostí: {rejected_count}",
+            f"Nezapočítaných žádostí: {external_count}"
         ]
 
     def __init__(self, bot: MonikaBot):
@@ -168,9 +183,9 @@ class WikidotApplicationsModule(ModuleBase):
                             await self.disable_resolved_embed(unresolved)
 
         except Exception as e:
-            error(f"Error encountered in check task: {str(e)}")
+            error(f"Error encountered in check task: {e!r}")
             channel = self.bot.get_channel(int(config.get("channels.console")))
-            await channel.send(content=f"Při stahování žádanek nastala chyba: {str(e)}")
+            await channel.send(content=f"Při stahování žádanek nastala chyba: {e!r}")
 
         return count
 
@@ -184,3 +199,18 @@ class WikidotApplicationsModule(ModuleBase):
     def cog_unload(self):
         self.check_applications.cancel()
         return super().cog_unload()
+
+@WikidotApplicationsModule.model
+class WDApplication(ModelBase):
+    application_id = AutoField()
+    user_id = IntegerField()
+    username = CharField(max_length=128)
+    unix_name = CharField(max_length=128)
+    text = TextField()
+    submitted = TimestampField(default=datetime.now)
+    resolved = BooleanField(default=False)
+    resolved_at = TimestampField(null=True, default=None)
+    resolved_by = ForeignKeyField(User, backref='applications', null=True)
+    resolved_externally = BooleanField(default=False)
+    accepted = BooleanField(null=True)
+    embed_id = IntegerField(null=True, default=None)

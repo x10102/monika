@@ -1,10 +1,31 @@
 from discord import Cog
 from logging import info
+from core.models import ModelBase
+from typing import TypeVar, ClassVar
+
+ModelType = TypeVar('ModelType', bound=ModelBase)
 
 class ModuleBase(Cog):
 
+    _required_models: ClassVar[list[type[ModelBase]]] = []
+
     def __init__(self):
         super().__init__()
+
+    def __init_subclass__(cls):
+        # Why are static variables on subclasses a reference to the ones on the parent?
+        # That's so stupid
+        # Just create the variable on the subclass explicitly
+        cls._required_models = []
+
+    @classmethod
+    def model(cls, model: type[ModelType]) -> type[ModelType]:
+        cls._required_models.append(model)
+        return model
+
+    @classmethod
+    def required_models(cls) -> list[type[ModelBase]]:
+        return cls._required_models
     
     @staticmethod
     def env_override() -> str:
@@ -29,13 +50,19 @@ class ModuleBase(Cog):
         """
         return []
     
-    def print_config(self) -> list[str]:
+    def format_config(self) -> list[str]:
         """
         Returns the module's configuration as a list of lines to be sent/printed.
 
         It's done this way so that the formatting can be consistent across all modules, for this reason, the lines shouldn't contain any formatting or newlines.
         """
         return ["Modul neohlásil žádnou konfiguraci"]
+
+    def format_stats(self) -> list[str]:
+        """
+        Returns a module's internal statistics in the same manner as print_config 
+        """
+        return []
     
     def __str__(self):
         return f"{self.name()} Module, requires config: [{"".join(self.config_required)}]"

@@ -1,24 +1,26 @@
-
-from discord import Message
-import discord
+# Builtins
 from logging import info, warning
 from dataclasses import dataclass, field
 from hashlib import blake2b
 from datetime import datetime, timedelta
 from typing import cast
 import random
-import asyncio
-import utils.discordutils as discordutils
-from constants import TIMEOUTED_VERB
-from enum import IntEnum
-from core.exceptions import MissingConfigError
+from enum import IntEnum, auto
 
+# External
+import discord
+import asyncio
+from discord import Message
+from peewee import (AutoField, ForeignKeyField, TimeField, TextField, IntegerField, CharField, DateTimeField)
+
+# Internal
+from utils import discordutils
+from core.exceptions import MissingConfigError
 from core.modulebase import ModuleBase
 from core.singletons import config
 from core.botbase import MonikaBot
-
-from core.models import AntispamTriggerEvent, AntiSpamResolveAction, SpamAttachmentHash
-
+from core.models import ModelBase, User
+from constants import TIMEOUTED_VERB
 
 class SpamReportField(IntEnum):
     USERNAME = 0
@@ -27,6 +29,11 @@ class SpamReportField(IntEnum):
     ATTACHMENT_COUNT = 3
     TIMESTAMP = 4
     ACTION = 5
+
+class AntiSpamResolveAction(IntEnum):
+    UNMUTE = auto()
+    DELETE_MESSAGES = auto()
+    DELETE_AND_KICK = auto()
 
 @dataclass
 class MessageContent:
@@ -122,11 +129,17 @@ class AntispamModule(ModuleBase):
     def config_required():
         return ['channels.console', 'roles.admin']
     
-    def print_config(self):
+    def format_config(self):
         return [
             f'Počet opakovaných zpráv pro spuštění: {self.spam_limit}',
             f'Velikost okna pro opakování: {self.repeat_timeout.seconds//60} minut',
             f'Trvání timeoutu za spam: {self.default_mute.seconds//(60*60)} hodin'
+        ]
+
+    def format_stats(self):
+        antispam_trigger_count = AntispamTriggerEvent.select().count()
+        return [
+            f"Události detekce spamu: {antispam_trigger_count}"
         ]
 
     def __init__(self, bot: MonikaBot):
@@ -182,8 +195,7 @@ class AntispamModule(ModuleBase):
         embed.colour = discord.Color.blue()
         
         if isinstance(message_author, discord.User):
-            raise RuntimeError("Got User object where Member object was expected (PM interactions not supported)")
-
+            raise TypeError("Got User object where Member object was expected (PM interactions not supported)")
 
         await console.send(content=f"<@&{config.get("roles.admin")}>",
                             embed=embed, 
@@ -218,9 +230,9 @@ class AntispamModule(ModuleBase):
         # Check that the count and sizes of attachments match
         if len(first.message_object.attachments) != len(other.message_object.attachments):
             return False
-        return all([att_self.size == att_other.size 
+        return all(att_self.size == att_other.size 
                     for att_self, att_other 
-                    in zip(first.message_object.attachments, other.message_object.attachments)])
+                    in zip(first.message_object.attachments, other.message_object.attachments))
 
     @ModuleBase.listener()
     async def on_message(self, message: Message):
@@ -289,3 +301,24 @@ class AntispamModule(ModuleBase):
                     )
 
                 await self.notify_moderators(message, event_record)
+
+# ===== Models =====
+
+@AntispamModule.model
+class AntispamTriggerEvent(ModelBase):
+    id = AutoField()
+    event_timestamp = DateTimeField(default=datetime.now)
+    resolution_timestamp = DateTimeField(null=True, default=None)
+    offending_user = ForeignKeyField(User, backref='mutes')
+    resolving_user = ForeignKeyField(User, backref='resolved_incidents', null=True, default=None)
+    moderator_action = IntegerField(null=True)
+    muted_for = TimeField()
+    message_content = TextField()
+    attachment_count = IntegerField()
+
+@AntispamModule.model
+class SpamAttachmentHash(ModelBase):
+    id = AutoField()
+    hexdigest = CharField(32) # We use BLAKE2b-128, which means 16 byte digest - 32 hex chars
+    filename = TextField()
+    event = ForeignKeyField(AntispamTriggerEvent, backref='attachments')

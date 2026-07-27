@@ -7,11 +7,12 @@ from datetime import datetime, timedelta
 import discord
 from discord.ext import tasks
 from discord.utils import MISSING
+from peewee import (AutoField, CharField, TimestampField, IntegerField)
 
 # Internal
 from core.modulebase import ModuleBase
+from core.models import ModelBase
 from core.singletons import config
-from core.models import StarboardPinnedMessage
 from core.botbase import MonikaBot
 from utils.discordutils import get_message_url
 
@@ -29,7 +30,7 @@ class StarboardModule(ModuleBase):
     def config_required():
         return ['channels.starboard', 'channels.console', 'starboard.threshold', 'starboard.emoji']
     
-    def print_config(self):
+    def format_config(self):
         emoji = [str(e.name) for e in self.emoji]
         excluded = [str(e) for e in self.excluded]
         return [
@@ -37,6 +38,14 @@ class StarboardModule(ModuleBase):
             f'Hranice pro pin: {self.threshold}',
             f'Sledované reakce: {", ".join(emoji)}',
             f'Ignorované kanály: {", ".join(excluded)}'
+        ]
+
+    def format_stats(self):
+        pinned_count = StarboardPinnedMessage.select().where(StarboardPinnedMessage.pinned_at.is_null(False)).count()
+        record_count = StarboardPinnedMessage.select().count()
+        return [
+            f"Připnutých zpráv: {pinned_count}",
+            f"Záznamů ve starboard tabulce: {record_count}"
         ]
 
     def __init__(self, bot: MonikaBot):
@@ -168,3 +177,15 @@ class StarboardModule(ModuleBase):
         deleted_count = query.execute()
 
         info(f"Purged {deleted_count} expired starboard records")
+
+# ===== Models =====
+
+@StarboardModule.model
+class StarboardPinnedMessage(ModelBase):
+    id = AutoField()
+    message_id = CharField(15) # 15 chars should be enough for the forseeable future
+    emoji = CharField(64)
+    pinned_at = TimestampField(null=True, default=None)
+    reaction_count = IntegerField(default=0)
+    created_at = TimestampField(default=datetime.now)
+    starboard_id = CharField(15, null=True, default=None)

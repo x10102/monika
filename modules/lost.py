@@ -5,12 +5,13 @@ from logging import info
 # External
 from discord.ext import tasks
 from discord.ext.commands import slash_command
+from peewee import (AutoField, DateTimeField, ForeignKeyField)
 import discord
 
 # Internal
 from constants import THE_NUMBERS, KOTESENI
 from utils.discordutils import ensure_user
-from core.models import LostCycle, LostCycleReset
+from core.models import ModelBase, User
 from core.singletons import config
 from core.botbase import MonikaBot
 from core.modulebase import ModuleBase
@@ -32,11 +33,15 @@ class LostModule(ModuleBase):
     def config_required():
         return ['channels.lost', 'roles.lost']
     
-    def print_config(self):
+    def format_config(self):
         return [
             f'ID Role: {self.role_id}',
             f'ID Kanálu: {self.channel_id}'
         ]
+
+    def format_stats(self):
+        lost_cycle_count = LostCycle.select().count()
+        return [f"Cykly ztraceného tlačítka: {lost_cycle_count}"]
 
     def __init__(self, bot: MonikaBot):
         self.bot: MonikaBot = bot
@@ -143,4 +148,18 @@ class LostModule(ModuleBase):
         self.lost_prompt.cancel()
         self.lost_failed.cancel()
         return super().cog_unload()
-    
+
+# ===== Models =====
+
+@LostModule.model
+class LostCycle(ModelBase):
+    id = AutoField()
+    started = DateTimeField(default=datetime.now)
+    ended = DateTimeField(null=True)
+
+@LostModule.model
+class LostCycleReset(ModelBase):
+    id = AutoField()
+    timestamp = DateTimeField(default=datetime.now)
+    cycle = ForeignKeyField(LostCycle, backref='resets')
+    user = ForeignKeyField(User, backref='resets')
