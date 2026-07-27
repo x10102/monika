@@ -1,1 +1,2 @@
-ignore = ['I001']
+ignore = ['I001', 'LOG015']
+target-version = 'py314'
