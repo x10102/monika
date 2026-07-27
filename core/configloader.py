@@ -165,6 +165,4 @@ class ConfigLoader():
             json.dump(self._config, configfile, indent=4)
 
     def print_all_keys(self) -> list[str]:
-        print("called")
         return list(iterkeys_nested(self._config))
-    
