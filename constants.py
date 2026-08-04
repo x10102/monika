@@ -5,7 +5,7 @@ class ExitCode(IntEnum):
     KILLED = 67,
     RESTART_REQUEST = 111
 
-PROGRAM_VERSION = "3.0.0"
+PROGRAM_VERSION = "3.1.0"
 
 PM_VERB = ["slajdnout do DMs",
             "střelit PM",
