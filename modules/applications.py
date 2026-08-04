@@ -93,7 +93,7 @@ class WikidotApplicationsModule(ModuleBase):
     
     @staticmethod
     def config_required():
-        return ['channels.console', 'wikidot.name', 'wikidot.user', 'wikidot.password']
+        return ['channels.console', 'wikidot.name', 'wikidot.user', 'wikidot.password', 'roles.admin']
 
     def format_config(self):
         return [
@@ -168,7 +168,7 @@ class WikidotApplicationsModule(ModuleBase):
                         color=discord.Colour.blurple(),
                     )
                     embed.add_field(name="Zpráva", value=f"```{application.text}```")
-                    embed_message = await channel.send(embed=embed, view=WDAppConfirmView(application, appl, self))
+                    embed_message = await channel.send(content=f"<@&{config.get("roles.admin")}>", embed=embed, view=WDAppConfirmView(application, appl, self))
                     appl.embed_id = embed_message.id
                     appl.save()
 
