@@ -33,7 +33,8 @@ LOAD_MODULES: list[type[ModuleBase]] = [BasicModule,
                                         AntispamModule,
                                         WikidotApplicationsModule,
                                         StarboardModule,
-                                        ConfessionsModule]
+                                        ConfessionsModule,
+                                        GatekeeperModule]
 
 # Set up the logging format and target
 # Logs to stdout and "bot.log" by default
