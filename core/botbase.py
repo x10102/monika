@@ -10,12 +10,15 @@ from .modulebase import ModuleBase
 
 # External
 from discord import Bot
+from fastapi import FastAPI
 
 class MonikaBot(Bot):
 
     def __init__(self, description=None, *args, **options):
         super().__init__(description, *args, **options)
         self.__loaded_modules = []
+        self.api = FastAPI()
+        self.api_enabled: bool = False
 
     async def on_ready(self):
         info(f"{self.user} is ready to go!")

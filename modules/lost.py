@@ -44,6 +44,7 @@ class LostModule(ModuleBase):
         return [f"Cykly ztraceného tlačítka: {lost_cycle_count}"]
 
     def __init__(self, bot: MonikaBot):
+        super().__init__()
         self.bot: MonikaBot = bot
         self.iterations = 0
         self.channel_id = config.get_value("channels.lost")

@@ -12,5 +12,13 @@ class User(ModelBase):
     discord_name = CharField(max_length=128)
     display_name = CharField(max_length=128)
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.user_id,
+            "discord_id": self.discord_id,
+            "username": self.discord_name,
+            "display_name": self.display_name
+        }
+
 def get_core_models() -> list[type[ModelBase]]:
     return [User]

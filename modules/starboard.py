@@ -49,6 +49,7 @@ class StarboardModule(ModuleBase):
         ]
 
     def __init__(self, bot: MonikaBot):
+        super().__init__()
         self.bot: MonikaBot = bot
         self.threshold: int = config.get_value('starboard.threshold')
         self.channel: int = config.get_value('channels.starboard')

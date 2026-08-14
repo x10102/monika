@@ -37,6 +37,15 @@ class BasicModule(ModuleBase):
         self.console_id = int(config.get_value('channels.console'))
         self.admin_role_id = int(config.get_value('roles.admin'))
         self.bot = bot
+        self._router.add_api_route('/status', self.api_bot_info)
+
+    def api_bot_info(self):
+        return {
+            "owner_id": self.bot.owner_id,
+            "username": self.bot.user.name,
+            "avatar": self.bot.user.avatar.url,
+            "loaded_modules": [m.name() for m in self.bot.loaded_modules]
+        }
 
     @discord.default_permissions(administrator=True)
     @discord.slash_command(name="kill", description="Ukončí bota v případě že se zblázní")

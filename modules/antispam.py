@@ -143,6 +143,7 @@ class AntispamModule(ModuleBase):
         ]
 
     def __init__(self, bot: MonikaBot):
+        super().__init__()
         self.bot: MonikaBot = bot
         self.previous_messages: dict[int, MessageContent] = {}
         self.offending_messages: dict[int, set[discord.Message]] = {}

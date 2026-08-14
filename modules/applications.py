@@ -112,6 +112,7 @@ class WikidotApplicationsModule(ModuleBase):
         ]
 
     def __init__(self, bot: MonikaBot):
+        super().__init__()
         self.bot: MonikaBot = bot
         wiki_cfg = config.scope("wikidot")
         console_channel = config.get("channels.console")
@@ -122,9 +123,22 @@ class WikidotApplicationsModule(ModuleBase):
         self.wiki_name: str = cast(str, wiki_name)
         self.wiki_user: str = cast(str, wiki_user)
         self.wiki_password: str = cast(str, wiki_password)
+        self._router.add_api_route('/applications/list', self.api_get_applications)
+
+    def api_get_applications(self, limit: int | None = None, page: int | None = None):
+        query = WDApplication.select()
+        if limit is not None:
+            query = query.limit(limit)
+        if page is not None:
+            limit = limit or 20
+            query = query.offset(page*limit)
+        appl_list = [a.to_dict() for a in query]
+        return appl_list
 
     @ModuleBase.listener()
     async def on_ready(self):
+        if config.get('debug.disable_check_task', False):
+            return
         if not self.check_applications.is_running() \
             and config.get("overrides.disable_application_check") != 'true':
             info("Scheduled check task")
@@ -214,3 +228,19 @@ class WDApplication(ModelBase):
     resolved_externally = BooleanField(default=False)
     accepted = BooleanField(null=True)
     embed_id = IntegerField(null=True, default=None)
+
+    def to_dict(self) -> dict:
+        return {
+            "app_id": self.application_id,
+            "wiki_user_id": self.user_id,
+            "wiki_user_name": self.username,
+            "wiki_user_unix": self.unix_name,
+            "text": self.text,
+            "submitted_at": self.submitted,
+            "resolved": self.resolved,
+            "resolved_at": self.resolved_at,
+            "resolved_by": self.resolved_by.to_dict() if self.resolved_by else None,
+            "resolved_ext": self.resolved_externally,
+            "accepted": self.accepted,
+            "discord_embed_id": self.embed_id
+        }

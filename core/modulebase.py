@@ -2,15 +2,18 @@ from discord import Cog
 from logging import info
 from core.models import ModelBase
 from typing import TypeVar, ClassVar
+from fastapi import APIRouter
 
 ModelType = TypeVar('ModelType', bound=ModelBase)
 
 class ModuleBase(Cog):
 
     _required_models: ClassVar[list[type[ModelBase]]] = []
+    _router: ClassVar[APIRouter]
 
     def __init__(self):
         super().__init__()
+        self._router = APIRouter()
 
     def __init_subclass__(cls):
         # Why are static variables on subclasses a reference to the ones on the parent?
@@ -22,7 +25,7 @@ class ModuleBase(Cog):
     def model(cls, model: type[ModelType]) -> type[ModelType]:
         cls._required_models.append(model)
         return model
-
+    
     @classmethod
     def required_models(cls) -> list[type[ModelBase]]:
         return cls._required_models
@@ -49,6 +52,12 @@ class ModuleBase(Cog):
         Returns a list of config paths which need to exist for the module to be loaded
         """
         return []
+
+    def router(self) -> APIRouter:
+        """
+        Returns the FastAPI router instance which provides API routes for this module
+        """
+        return self._router
     
     def format_config(self) -> list[str]:
         """
