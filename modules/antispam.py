@@ -116,6 +116,21 @@ class AntiSpamEventView(discord.ui.View):
         
 
 class AntispamModule(ModuleBase):
+    """
+    Detects repeated messages with the same content, across channels or within the same channel.
+    Also works on attachments by comparing blake2b hashes.
+
+    Offenders are put in timeout and an embed is sent to the console channel, providing a description of the incident and letting the moderator choose from three options:
+    - Remove the timeout
+    - Remove the offending messages
+    - Remove the offending messages and kick the user from the server
+
+    Options:
+    - antispam.window_minutes sets the time window for a message to count as repeated. Default: 5
+    - antispam.window_size sets the threshold of repeated messages which counts as a spam event. Default: 4
+    - antispam.timeout_hours sets the duration for which the user will be muted. Default: 12
+    - overrides.disable_antispam disables the module when set to true
+    """
 
     @staticmethod
     def env_override():
