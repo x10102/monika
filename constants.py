@@ -5,12 +5,13 @@ class ExitCode(IntEnum):
     KILLED = 67,
     RESTART_REQUEST = 111
 
-PROGRAM_VERSION = "3.1.0"
+PROGRAM_VERSION = "4.0.0"
 
 PM_VERB = ["slajdnout do DMs",
             "střelit PM",
             "hodit message",
             "napsat na Wikidotu"]
+
 TIMEOUTED_VERB = ["Mutenut", 
                   "Timeoutnut", 
                   "Zablokován", 
