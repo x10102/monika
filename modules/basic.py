@@ -123,6 +123,25 @@ class BasicModule(ModuleBase):
         await ctx.respond("🐈")
 
     @discord.default_permissions(administrator=True)
+    @slash_command(name="say", description="Odešle zprávu do kanálu")
+    @discord.option(name="channel",
+                    type=discord.TextChannel,
+                    description="The channel to send the message to",
+                    required=True,
+                    name_localizations={'cs': "kanál"},
+                    description_localizations={'cs': "Kanál kam se zpráva odešle"})
+    @discord.option(name="message",
+                        type=discord.SlashCommandOptionType.string,
+                        description="The content of the message",
+                        required=True,
+                        name_localizations={'cs': "zpráva"},
+                        description_localizations={'cs': "Obsah zprávy"})
+    async def say(self, ctx: discord.ApplicationContext, channel: discord.TextChannel, message: str):
+        info(f"Sending message \"{message}\" to channel {channel.id} at request of {ctx.user.name} ({ctx.user.id})")
+        await channel.send(content=message)
+        await ctx.respond("Zpráva odeslána", ephemeral=True)
+
+    @discord.default_permissions(administrator=True)
     @discord.slash_command(name="synccommands", description="Synchronizuje příkazy s Discordem po aktualizaci, nepoužívat pokud nevíte co to znamená")
     async def cmd_sync(self, ctx: discord.ApplicationContext):
         info(f"Synchronizing commands at request of {ctx.user.name} ({ctx.user.id})")
@@ -131,7 +150,7 @@ class BasicModule(ModuleBase):
 
     @ModuleBase.listener()
     async def on_ready(self):
-        if(config.get("overrides.sync_commands_on_startup", "false") == "true"):
+        if(config.get("overrides.sync_commands_on_startup", "false") == True):
             info("Syncing commands")
             await self.bot.sync_commands()
             channel = self.bot.get_channel(self.console_id)
