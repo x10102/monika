@@ -149,7 +149,7 @@ class StarboardModule(ModuleBase):
             msg = StarboardPinnedMessage.get_or_none(message_id = payload.message_id,
                                         emoji = payload.emoji)
             
-            if not msg or msg.pinned_at.is_null(True):
+            if not msg or msg.pinned_at is None:
                 # The reaction has a different emoji than the starboard pin
                 # Just ignore it so I can keep my sanity
                 return
