@@ -10,8 +10,8 @@ type DescriptorOrPath = int | str | bytes | os.PathLike[str] | os.PathLike[bytes
 
 T = TypeVar("T", default=str)
 
-class ScopedConfigLoader():
-    def __init__(self, scope: str, loader: "ConfigLoader"):
+class ScopedConfigLoader:
+    def __init__(self, scope: str, loader: ConfigLoader):
         self._scope = scope
         self._loader = loader
     
@@ -41,7 +41,7 @@ class ScopedConfigLoader():
         new_scope = f"{self._scope}.{key}"
         return self._loader.scope(new_scope)
 
-class ConfigLoader():
+class ConfigLoader:
     def __init__(self) -> None:
         self._attribs: dict[str, Any] = {}
         self._config: dict[str, Any] = {}
@@ -141,11 +141,11 @@ class ConfigLoader():
         try:
             with open(path, 'r', encoding='utf-8') as configfile:
                 self._config.update(json.load(configfile))
-        except (OSError, IOError) as e:
-            error(f"Failed to load config: I/O error ({str(e)})")
+        except OSError as e:
+            error(f"Failed to load config: I/O error ({e!r})")
             return False
         except json.JSONDecodeError as e:
-            error(f"Failed to load config: JSON decode error ({str(e)})")
+            error(f"Failed to load config: JSON decode error ({e!r})")
             return False
         return True
 
