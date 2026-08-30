@@ -48,6 +48,47 @@ class StarboardModule(ModuleBase):
             f"Záznamů ve starboard tabulce: {record_count}"
         ]
 
+    async def message_to_sb_id(self) -> int | None:
+        starboard_channel = await self.bot.fetch_channel(self.channel)
+        return None
+
+    @discord.default_permissions(administrator=True)
+    @discord.slash_command(name='fsbmid', description="Doplní chybějící informace do Starboard tabulky, prosím nepoužívat")
+    async def fetch_starboard_message_ids(self, ctx: discord.ApplicationContext):
+        await ctx.defer()
+        starboard_channel = cast(discord.abc.Messageable, await self.bot.fetch_channel(self.channel))
+        async for pinned_msg in starboard_channel.history():
+            embed = pinned_msg.embeds[0]
+            if not embed:
+                info("No embed")
+                continue
+            url_field = embed.fields[1].value
+            # I hate regex and I refuse to use it here
+            # Slice footer with the message link into the message ID and channel ID
+            url_split = url_field.split('/')
+            message_id = int(url_split[-1][:-3])
+            channel_id = int(url_split[-2])
+            msg_model: StarboardPinnedMessage = StarboardPinnedMessage.get_or_none((StarboardPinnedMessage.message_id == message_id) 
+                                                           & (StarboardPinnedMessage.pinned_at.is_null(False)))
+            if not msg_model:
+                info(f"ID {message_id} No model")
+                continue
+            msg_model.starboard_id = pinned_msg.id
+            msg_model.save()
+            info(f"SB {pinned_msg.id} => {message_id}")
+            target_channel = cast(discord.TextChannel, await self.bot.fetch_channel(channel_id))
+            target_message = await target_channel.fetch_message(message_id)
+            for reaction in target_message.reactions:
+                message_react_partial = discord.PartialEmoji.from_str(reaction.emoji) if isinstance(reaction.emoji, str) else reaction.emoji if isinstance(reaction.emoji, discord.PartialEmoji) else reaction.emoji._to_partial()
+                if message_react_partial == discord.PartialEmoji.from_str(msg_model.emoji) and reaction.count > msg_model.reaction_count:
+                    info(f"UPDATE SB {pinned_msg.id} react x{msg_model.reaction_count} => x{reaction.count}")
+                    msg_model.reaction_count = msg_model.max_reaction_count = reaction.count
+                    msg_model.save()
+                    await self.edit_starboard_pin(msg_model)
+                    break
+
+        await ctx.interaction.followup.send("done")
+
     def __init__(self, bot: MonikaBot):
         self.bot: MonikaBot = bot
         self.threshold: int = config.get_value('starboard.threshold')
