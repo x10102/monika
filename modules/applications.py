@@ -122,6 +122,8 @@ class WikidotApplicationsModule(ModuleBase):
         self.wiki_name: str = cast(str, wiki_name)
         self.wiki_user: str = cast(str, wiki_user)
         self.wiki_password: str = cast(str, wiki_password)
+        self.retry_count: int = cast(int, wiki_cfg.get("retries_before_reporting", 0))
+        self.current_retries: int = 0
 
     @ModuleBase.listener()
     async def on_ready(self):
@@ -142,6 +144,23 @@ class WikidotApplicationsModule(ModuleBase):
         org_view = discord.ui.View.from_message(org_embed_msg, timeout=None)
         org_view.disable_all_items()
         await org_embed_msg.edit(embed=org_embed, view=org_view)
+
+    async def handle_check_error(self, e: Exception):
+        error(f"Error encountered in check task: {e!r}")
+        channel = cast(discord.TextChannel, self.bot.get_channel(self.console_channel))
+
+        if self.retry_count <= 0:
+            await channel.send(content=f"Při stahování žádanek nastala chyba: {e!r}")
+            return
+
+        # Only send a server ping when we're at this exact number of retries - once per fail series
+        if self.current_retries < self.retry_count or self.current_retries > self.retry_count:
+            info(f"Error suppressed - retry {self.current_retries}")
+            self.current_retries += 1
+            return
+        elif self.current_retries == self.retry_count:
+            await channel.send(content=f"Posledních {self.current_retries} pokusů o stažení žádanek selhalo, čekám než ta sračka zase naběhne.")
+            return
 
     @tasks.loop(minutes=30)
     async def check_applications(self):
@@ -182,10 +201,11 @@ class WikidotApplicationsModule(ModuleBase):
                         if unresolved.embed_id is not None:
                             await self.disable_resolved_embed(unresolved)
 
+                # Reset the error count when we succesfully complete the download
+                self.current_retries = 0
+
         except Exception as e:
-            error(f"Error encountered in check task: {e!r}")
-            channel = self.bot.get_channel(int(config.get("channels.console")))
-            await channel.send(content=f"Při stahování žádanek nastala chyba: {e!r}")
+            self.handle_check_error(e)
 
         return count
 
