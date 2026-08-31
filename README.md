@@ -74,3 +74,47 @@ A secondary discord bot for the Czech SCP branch (alongside [Thorn](https://gith
     docker run --detach --name monika_bot\
         --volume type=bind,src=/opt/monika/monika.db,dst=/app/monika.db\
         --volume type=bind,src=/opt/monika/log.txt,dst=/app/log.txt
+
+## Using the bot
+
+- Make sure the bot is alive with `/ping`, it should respond with a 🐈
+- Use `/reload` to restart the bot after making changes to the configuration
+- If a new module is enabled, use `/synccommands` to make the bot synchronize the new commands with Discord. Users may have to restart their client to see them at first.
+    - Modules such as `Starboard` or `Confessions` are loaded dynamically based on the configuration values (not) present
+- If the bot ever goes insane, use `/kill` to immediately exit/crash the script
+- Use `/config` and `/setconfig` to view and change values in the config file
+- Use `/stats` to see statistics reported by each module, not all of them may provide a lot of useful info
+- Use `/say` to make the bot say freaky things in public channels
+
+## Configuring Starboard
+- A "Starboard" is a channel where messages which gather enough reactions from members are reposted
+- Create a starboard channel and set `channels.starboard` to its ID
+- Insert a list of the reactions you want to use for this into `starboard.emoji`
+    - You can create a list with the `/setconfig` command like this: `VALUE1,VALUE2,VALUE3`
+    - Built-in Discord emoji can be pasted in as-is, custom server emojis are formatted as `<:NAME:ID>`
+- Finally, set `starboard.threshold` to the reaction count threshold which will cause a message to be pinned on the starboard
+
+## Configuring AntiSpam
+- This is enabled by default, set `overrides.disable_antispam` to `true` to disable it
+- By default, `4` identical messages within `5` minutes will trigger a spam event and mute the user for `12` hours. Use `antispam.window_size`, `antispam.window_minutes` and `antispam.timeout_hours` respectively to customize these values.
+
+## Configuring Wikidot Applications Proxy
+- Set `wikidot.name` to the name of your wiki. For example `scp-wiki` or `wanderers-library` for the official SCP wikis.
+- Set `wikidot.user` and `wikidot.password` to the credentials of a Wikidot user who has administrator rights on your wiki.
+    - Make sure no one else can read your config file while you're at it
+    - Also keep in mind that this *can't* be read through any command, but *can* be changed by administrators. If this is a problem for you, check `constants.py` and you should be able to figure out how to protect specific config keys
+- By default, the bot checks for new applications every 30 minutes. The check can also be triggered manually using `/applications`
+- Once an application is received, it will be forwarded to your console channel with an option to either reject or accept it
+
+## Configuring Confessions
+- This one is simple, set `channels.confessions` to one of your admin channels. Users will then be able to use the `/confess` command to send you a message to that channel.
+- The users have an option for their name to be sent as well, or for the confession to remain anonymous. The usernames of users confessing anonymously **will be redacted from the bot's logs as well**.
+
+## Configuring Gatekeeper
+**WIP**
+
+## Configuring Image Processing Tools
+**WIP**
+
+## Configuring Lost
+**WIP**
