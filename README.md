@@ -29,7 +29,7 @@ A secondary discord bot for the Czech SCP branch (alongside [Thorn](https://gith
             "admin": <ADMIN ROLE ID>
         },
         "channels": {
-            "console" <CONSOLE CHANNEL ID>
+            "console": <CONSOLE CHANNEL ID>
         }
     }
     ```
@@ -71,4 +71,6 @@ A secondary discord bot for the Czech SCP branch (alongside [Thorn](https://gith
     # Touch the files on host to make them mount correctly
     touch /opt/monika/monika.db
     touch /opt/monika/log.txt
-    docker run --detach --name monika_bot --volume type=bind,src=/opt/monika/monika.db,dst=/app/monika.db --volume type=bind,src=/opt/monika/log.txt,dst=/app/log.txt
+    docker run --detach --name monika_bot\
+        --volume type=bind,src=/opt/monika/monika.db,dst=/app/monika.db\
+        --volume type=bind,src=/opt/monika/log.txt,dst=/app/log.txt
