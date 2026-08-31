@@ -78,11 +78,13 @@ A secondary discord bot for the Czech SCP branch (alongside [Thorn](https://gith
 ## Using the bot
 
 - Make sure the bot is alive with `/ping`, it should respond with a 🐈
-- Use `/reload` to restart the bot after making changes to the configuration
+- Use `/reload` to restart the bot after making changes to the configuration    
 - If a new module is enabled, use `/synccommands` to make the bot synchronize the new commands with Discord. Users may have to restart their client to see them at first.
     - Modules such as `Starboard` or `Confessions` are loaded dynamically based on the configuration values (not) present
 - If the bot ever goes insane, use `/kill` to immediately exit/crash the script
 - Use `/config` and `/setconfig` to view and change values in the config file
+    - Each module only shows specific, non-sensitive values in its config report, passwords and similar settings are hidden from this command
+    - Certain values, such as the database path and bot token are also protected from being changed using `/setconfig`, and must be directly written into the configuration file
 - Use `/stats` to see statistics reported by each module, not all of them may provide a lot of useful info
 - Use `/say` to make the bot say freaky things in public channels
 
@@ -97,6 +99,7 @@ A secondary discord bot for the Czech SCP branch (alongside [Thorn](https://gith
 ## Configuring AntiSpam
 - This is enabled by default, set `overrides.disable_antispam` to `true` to disable it
 - By default, `4` identical messages within `5` minutes will trigger a spam event and mute the user for `12` hours. Use `antispam.window_size`, `antispam.window_minutes` and `antispam.timeout_hours` respectively to customize these values.
+- When a spam event is detected, a message will be sent to your console channel with details regarding the incident, along with the options to remove the timeout, delete the messages, or kick the user from the server.
 
 ## Configuring Wikidot Applications Proxy
 - Set `wikidot.name` to the name of your wiki. For example `scp-wiki` or `wanderers-library` for the official SCP wikis.
