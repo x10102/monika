@@ -97,6 +97,7 @@ A secondary discord bot for the Czech SCP branch (alongside [Thorn](https://gith
 ## Configuring AntiSpam
 - This is enabled by default, set `overrides.disable_antispam` to `true` to disable it
 - By default, `4` identical messages within `5` minutes will trigger a spam event and mute the user for `12` hours. Use `antispam.window_size`, `antispam.window_minutes` and `antispam.timeout_hours` respectively to customize these values.
+- When a spam event is detected, a message will be sent to your console channel with details regarding the incident, along with the options to remove the timeout, delete the messages, or kick the user from the server.
 
 ## Configuring Wikidot Applications Proxy
 - Set `wikidot.name` to the name of your wiki. For example `scp-wiki` or `wanderers-library` for the official SCP wikis.
