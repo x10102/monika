@@ -68,7 +68,7 @@ class ConfessionsModule(ModuleBase):
         super().__init__()
         self.bot = bot
         self.channel = int(config.get("channels.confessions")) # type: ignore
-        self.anonymous = bool(config.get("confessions.anonymous"))
+        self.anonymous = bool(config.get("confessions.anonymous", False))
     
     @staticmethod
     def env_override() -> str:
@@ -80,7 +80,7 @@ class ConfessionsModule(ModuleBase):
     
     @staticmethod
     def config_required() -> list[str]:
-        return ["channels.confessions", "confessions.anonymous"]
+        return ["channels.confessions"]
     
     def format_config(self) -> list[str]:
         return [f"ID Schránky důvěry: {self.channel}"]
