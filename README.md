@@ -78,11 +78,13 @@ A secondary discord bot for the Czech SCP branch (alongside [Thorn](https://gith
 ## Using the bot
 
 - Make sure the bot is alive with `/ping`, it should respond with a 🐈
-- Use `/reload` to restart the bot after making changes to the configuration
+- Use `/reload` to restart the bot after making changes to the configuration    
 - If a new module is enabled, use `/synccommands` to make the bot synchronize the new commands with Discord. Users may have to restart their client to see them at first.
     - Modules such as `Starboard` or `Confessions` are loaded dynamically based on the configuration values (not) present
 - If the bot ever goes insane, use `/kill` to immediately exit/crash the script
 - Use `/config` and `/setconfig` to view and change values in the config file
+    - Each module only shows specific, non-sensitive values in its config report, passwords and similar settings are hidden from this command
+    - Certain values, such as the database path and bot token are also protected from being changed using `/setconfig`, and must be directly written into the configuration file
 - Use `/stats` to see statistics reported by each module, not all of them may provide a lot of useful info
 - Use `/say` to make the bot say freaky things in public channels
 
