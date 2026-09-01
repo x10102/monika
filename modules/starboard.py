@@ -48,10 +48,6 @@ class StarboardModule(ModuleBase):
             f"Záznamů ve starboard tabulce: {record_count}"
         ]
 
-    async def message_to_sb_id(self) -> int | None:
-        starboard_channel = await self.bot.fetch_channel(self.channel)
-        return None
-
     @discord.default_permissions(administrator=True)
     @discord.slash_command(name='fsbmid', description="Doplní chybějící informace do Starboard tabulky, prosím nepoužívat")
     async def fetch_starboard_message_ids(self, ctx: discord.ApplicationContext):
