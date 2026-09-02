@@ -25,6 +25,7 @@ from modules.lost import LostModule
 from modules.antispam import AntispamModule
 from modules.starboard import StarboardModule
 from modules.confessions import ConfessionsModule
+from modules.shitpost import ShitpostModule
 
 bot = MonikaBot(intents=discord.Intents.all())
 
@@ -33,7 +34,8 @@ LOAD_MODULES: list[type[ModuleBase]] = [BasicModule,
                                         AntispamModule,
                                         WikidotApplicationsModule,
                                         StarboardModule,
-                                        ConfessionsModule]
+                                        ConfessionsModule,
+                                        ShitpostModule]
 
 # Set up the logging format and target
 # Logs to stdout and "bot.log" by default
