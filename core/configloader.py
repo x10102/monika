@@ -4,7 +4,7 @@ import copy
 from logging import error
 from dotenv import load_dotenv
 from typing import Any, TypeVar, cast
-from utils.textutils import iterkeys_nested
+from utils.textutils import iterkeys_nested, flatten_nested
 
 type DescriptorOrPath = int | str | bytes | os.PathLike[str] | os.PathLike[bytes]
 
@@ -166,3 +166,6 @@ class ConfigLoader:
 
     def print_all_keys(self) -> list[str]:
         return list(iterkeys_nested(self._config))
+
+    def print_flat(self) -> dict[str, Any]:
+        return flatten_nested(self._config)

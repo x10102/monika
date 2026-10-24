@@ -8,6 +8,7 @@ from utils.textutils import string_to_json_type, JSONNull
 from core.botbase import MonikaBot
 import itertools
 import sys
+import aiofiles
 
 async def _autocomplete_cfg_key(ctx: discord.AutocompleteContext):
         return [k for k in config.print_all_keys() if ctx.value.lower() in k.lower()]
@@ -53,6 +54,8 @@ class BasicModule(ModuleBase):
     async def view_stats(self, ctx: discord.ApplicationContext):
         info(f"Sending stats as response to {ctx.user.name} ({ctx.user.id})")
         stats_text = f"```Monika.aic verze {PROGRAM_VERSION}\n"
+        if extra_text := config.get('edition'):
+            stats_text += extra_text
         stats = itertools.chain.from_iterable(mod.format_stats() for mod in self.bot.loaded_modules)
         for line in stats:
             stats_text += f"{line}\n"
@@ -69,7 +72,11 @@ class BasicModule(ModuleBase):
             for line in mod.format_config():
                 loaded_str += f'\t\t{line}\n'
             loaded_str += '\n'
-        config_text = f"```Konfigurace Monika.aic verze {PROGRAM_VERSION}\n\n"
+        config_text = f"```Konfigurace Monika.aic verze {PROGRAM_VERSION}"
+        if extra_text := config.get('edition'):
+            config_text += '\n'
+            config_text += extra_text
+        config_text += '\n\n'
         config_text += f"Načtené moduly:\n{loaded_str}```"
         # TODO: Finish this
         await ctx.respond(config_text)
@@ -147,6 +154,14 @@ class BasicModule(ModuleBase):
         info(f"Synchronizing commands at request of {ctx.user.name} ({ctx.user.id})")
         await self.bot.sync_commands()
         await ctx.respond("Synchronizace dokončena, pro použití nových příkazů restartujte Discord (CTRL+R)", ephemeral=True)
+
+    @discord.default_permissions(administrator=True)
+    @discord.slash_command(name="logs", description="Zobrazí protokol")
+    async def send_logs(self, ctx: discord.ApplicationContext):
+        log_filename: str = config.get_value('log_file')
+        info(f"Sending application logs at request of {ctx.user.name} (ID: {ctx.user.id})")
+        dfile = discord.File(fp=log_filename, filename="log.txt")
+        await ctx.respond(file=dfile)
 
     @ModuleBase.listener()
     async def on_ready(self):

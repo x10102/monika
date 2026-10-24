@@ -1,10 +1,10 @@
 import discord
-import io
+import anyio
 import os.path
+import io
 from PIL import Image
 from core.modulebase import ModuleBase
 from logging import warning, info
-
 
 class ImageToolsModule(ModuleBase):
     
@@ -42,8 +42,8 @@ class ImageToolsModule(ModuleBase):
 
         output_bytestream = io.BytesIO()
         converted.save(output_bytestream, format="GIF")
-        with open("a.gif", 'wb') as f:
-            f.write(output_bytestream.read())
+        async with await anyio.open_file("a.gif", 'wb') as f:
+            await f.write(output_bytestream.read())
         response_filename = os.path.splitext(image_att.filename)[0]+".gif"
         response_attachment = discord.File(fp=output_bytestream, filename=response_filename)
         await ctx.respond(file=response_attachment)

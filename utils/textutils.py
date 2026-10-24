@@ -81,3 +81,18 @@ def iterkeys_nested(v: dict, *, _prefix: str = ""):
             yield from iterkeys_nested(val, _prefix=f'{key}.')
         else:
             yield _prefix + key
+
+def flatten_nested(v: dict, *, _prefix: str = ""):
+    """
+    Same as iterkeys_nested but returns a dict with the values too
+    """
+
+    flat = {}
+
+    for key, val in v.items():
+        if type(val) is dict:
+            flat.update(flatten_nested(val, _prefix=f'{_prefix}{key}.'))
+        else:
+            flat[f"{_prefix}{key}"] = val
+
+    return flat
