@@ -45,7 +45,7 @@ def setup_logger(filename="bot.log"):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    log_format = '[%(levelname)s][%(asctime)s][%(name)s] %(message)s'
+    log_format = '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
     date_format = '%H-%M-%S %d-%m-%Y'
 
     formatter = logging.Formatter(log_format, datefmt=date_format)
@@ -58,6 +58,10 @@ def setup_logger(filename="bot.log"):
 
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
+
+    # Reduce library log spam
+    logging.getLogger("discord.gateway").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
         
 @bot.slash_command(name='reload', description='Restartuje bota a znovu načte konfiguraci')
 async def reload(ctx: discord.ApplicationContext):
@@ -75,7 +79,7 @@ async def reload(ctx: discord.ApplicationContext):
 def main():
     config.load_from_json()
     setup_logger(config.get("log_file", "bot.log"))
-    logging.getLogger("discord.gateway").setLevel(logging.WARNING)
+    
     log.info("Logger initialized")
     log.info(f"Monika.aic version {PROGRAM_VERSION} starting")
     log.info("Applying nested asyncio patch")
