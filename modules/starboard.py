@@ -1,6 +1,6 @@
 # Builtins
 from typing import cast
-from logging import info, error, warning
+import logging
 from datetime import datetime, timedelta
 
 # External
@@ -15,6 +15,8 @@ from core.models import ModelBase
 from core.singletons import config
 from core.botbase import MonikaBot
 from utils.discordutils import get_message_url
+
+log = logging.getLogger(__name__)
 
 class StarboardModule(ModuleBase):
 
@@ -63,7 +65,7 @@ class StarboardModule(ModuleBase):
             # Grab the first embed from every starboard message
             embed = pinned_msg.embeds[0]
             if not embed:
-                info("No embed")
+                log.info("No embed")
                 continue
             url_field = embed.fields[1].value
 
@@ -76,13 +78,13 @@ class StarboardModule(ModuleBase):
             msg_model: StarboardPinnedMessage = StarboardPinnedMessage.get_or_none((StarboardPinnedMessage.message_id == message_id) 
                                                            & (StarboardPinnedMessage.pinned_at.is_null(False)))
             if not msg_model:
-                info(f"ID {message_id} No model")
+                log.info(f"ID {message_id} No model")
                 continue
 
             # Update the starboard_id field with the embed's message ID
             msg_model.starboard_id = pinned_msg.id
             msg_model.save()
-            info(f"SB {pinned_msg.id} => {message_id}")
+            log.info(f"SB {pinned_msg.id} => {message_id}")
 
             # Grab the original message
             target_channel = cast(discord.TextChannel, await self.bot.fetch_channel(channel_id))
@@ -98,7 +100,7 @@ class StarboardModule(ModuleBase):
 
                 # If they match, set the new reaction count in database and call edit_starboard_pin() on the record to update the embed
                 if message_react_partial == discord.PartialEmoji.from_str(msg_model.emoji) and reaction.count > msg_model.reaction_count:
-                    info(f"UPDATE SB {pinned_msg.id} react x{msg_model.reaction_count} => x{reaction.count}")
+                    log.info(f"UPDATE SB {pinned_msg.id} react x{msg_model.reaction_count} => x{reaction.count}")
                     msg_model.reaction_count = msg_model.max_reaction_count = reaction.count
                     msg_model.save()
                     await self.edit_starboard_pin(msg_model)
@@ -130,9 +132,9 @@ class StarboardModule(ModuleBase):
                                                 False)
             self.purge_loop_handle.start()
             tasks.loop()
-            info(f"Scheduled DB purge for starboard messsages older than {purge_days} days")
+            log.info(f"Scheduled DB purge for starboard messsages older than {purge_days} days")
         else:
-            warning("Expiration time for starboard records is not set, this might make the database grow very fast in large servers!")
+            log.warning("Expiration time for starboard records is not set, this might make the database grow very fast in large servers!")
 
     async def edit_starboard_pin(self, msg: StarboardPinnedMessage):
         if not msg.starboard_id:
@@ -141,7 +143,7 @@ class StarboardModule(ModuleBase):
         starboard_channel = cast(discord.TextChannel, await self.bot.fetch_channel(self.channel))
         message = await starboard_channel.fetch_message(msg.starboard_id)
 
-        info(f"Edit starboard embed ID {msg.starboard_id} for message {msg.message_id} with {msg.reaction_count} reactions")
+        log.info(f"Edit starboard embed ID {msg.starboard_id} for message {msg.message_id} with {msg.reaction_count} reactions")
 
         # We'd have to store the channel ID or pass it to the function to get the original channel
         # So we just do a bit of awful string splicing instead
@@ -213,14 +215,14 @@ class StarboardModule(ModuleBase):
         channel = await self.bot.fetch_channel(payload.channel_id)
         starboard_channel = await self.bot.fetch_channel(self.channel)
         if not isinstance(channel, (discord.TextChannel, discord.Thread)) or not isinstance(starboard_channel, discord.TextChannel):
-            error(f"Attempted to fetch message from invalid channel type, channel ID is {payload.channel_id}")
+            log.error(f"Attempted to fetch message from invalid channel type, channel ID is {payload.channel_id}")
             console = cast(discord.abc.Messageable, self.bot.get_channel(self.console))
             await console.send("Pokus o načtení špatného typu kanálu v on_raw_reaction_add (TOHLE JE DEFINITIVNĚ BUG)")
             return
 
         # Grab the message and log it
         message = await channel.fetch_message(payload.message_id)
-        info(f"Pin message {payload.message_id} to starboard with {message_model.reaction_count} reactions")
+        log.info(f"Pin message {payload.message_id} to starboard with {message_model.reaction_count} reactions")
 
         # Build the embed, fuck around with any potential attachments for a little
         star_embed = discord.Embed()
@@ -292,7 +294,7 @@ class StarboardModule(ModuleBase):
         
         deleted_count = query.execute()
 
-        info(f"Purged {deleted_count} expired starboard records")
+        log.info(f"Purged {deleted_count} expired starboard records")
 
 # ===== Models =====
 

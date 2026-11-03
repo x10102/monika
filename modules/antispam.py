@@ -1,5 +1,5 @@
 # Builtins
-from logging import info, warning
+import logging
 from dataclasses import dataclass, field
 from hashlib import blake2b
 from datetime import datetime, timedelta
@@ -21,6 +21,8 @@ from core.singletons import config
 from core.botbase import MonikaBot
 from core.models import ModelBase, User
 from constants import TIMEOUTED_VERB
+
+log = logging.getLogger(__name__)
 
 class SpamReportField(IntEnum):
     USERNAME = 0
@@ -51,7 +53,7 @@ class AntiSpamEventView(discord.ui.View):
 
     async def delete_messages(self):
         for msg in self.offending_messages:
-            info(f"Deleting message ID {msg.id}")
+            log.info(f"Deleting message ID {msg.id}")
             await msg.delete()
 
     async def resolve_interaction(self, interaction: discord.Interaction, new_action: str):
@@ -83,7 +85,7 @@ class AntiSpamEventView(discord.ui.View):
 
         await self.muted_user.remove_timeout()
 
-        info(f"Timeout canceled for {self.muted_user.name} (ID: {self.muted_user.id})")
+        log.info(f"Timeout canceled for {self.muted_user.name} (ID: {self.muted_user.id})")
         self.disable_all_items()
 
         self._event_record.moderator_action = AntiSpamResolveAction.UNMUTE
@@ -95,7 +97,7 @@ class AntiSpamEventView(discord.ui.View):
 
         await self.delete_messages()
 
-        info(f"Offending messages deleted for {self.muted_user.name} (ID: {self.muted_user.id})")
+        log.info(f"Offending messages deleted for {self.muted_user.name} (ID: {self.muted_user.id})")
         self.disable_all_items()
 
         self._event_record.moderator_action = AntiSpamResolveAction.DELETE_MESSAGES
@@ -111,7 +113,7 @@ class AntiSpamEventView(discord.ui.View):
 
         self._event_record.moderator_action = AntiSpamResolveAction.DELETE_AND_KICK
 
-        info(f"Messages deleted and {self.muted_user.name} (ID: {self.muted_user.id}) kicked")
+        log.info(f"Messages deleted and {self.muted_user.name} (ID: {self.muted_user.id}) kicked")
         await self.resolve_interaction(interaction, "Vyhostěn do dalekých krajin")
         
 
@@ -217,7 +219,7 @@ class AntispamModule(ModuleBase):
             return content
         
         for att in content.message_object.attachments:
-            info(f"Processing attachment: {att.filename}")
+            log.info(f"Processing attachment: {att.filename}")
             hasher = blake2b(digest_size=16)
             async for chunk in att.read_chunked(65536):
                 hasher.update(chunk)
@@ -249,7 +251,7 @@ class AntispamModule(ModuleBase):
             if author not in self.previous_messages:
                 self.previous_messages[author] = current_message
                 self.repeat_counters[author] = 0
-                info(f"First message by {author}")
+                log.info(f"First message by {author}")
                 return
 
             previous_message = self.previous_messages[author]
@@ -269,7 +271,7 @@ class AntispamModule(ModuleBase):
             
             # Messages match and aren't too far apart, increment the counter
             if current_message == previous_message:
-                info(f"Repeated message by {message.author.name} (ID: {message.author.id}), spam counter increased to {self.repeat_counters[author] + 1}")
+                log.info(f"Repeated message by {message.author.name} (ID: {message.author.id}), spam counter increased to {self.repeat_counters[author] + 1}")
                 if author not in self.offending_messages:
                     self.offending_messages[author] = set()
                 self.offending_messages[author].add(previous_message.message_object)
@@ -282,7 +284,7 @@ class AntispamModule(ModuleBase):
             if self.repeat_counters[author] >= self.spam_limit:
                 self.repeat_counters[author] = 0
                 await cast(discord.Member, message.author).timeout_for(self.default_mute)
-                warning(f"Timing out {message.author.name} (ID: {message.author.id}) for {self.default_mute} hours")
+                log.warning(f"Timing out {message.author.name} (ID: {message.author.id}) for {self.default_mute} hours")
 
                 offending_user = discordutils.ensure_user(message.author)
                 event_record = AntispamTriggerEvent.create(

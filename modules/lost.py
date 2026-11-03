@@ -1,6 +1,6 @@
 # Builtins
 from datetime import datetime
-from logging import info
+import logging
 
 # External
 from discord.ext import tasks
@@ -15,6 +15,8 @@ from core.models import ModelBase, User
 from core.singletons import config
 from core.botbase import MonikaBot
 from core.modulebase import ModuleBase
+
+log = logging.getLogger(__name__)
 
 # !WARNING: SHIT CODE AHEAD
 # TODO: Refactor this sometime
@@ -67,7 +69,7 @@ class LostModule(ModuleBase):
             self.first_fail_loop = False
             return
         
-        info("Cycle failed")
+        log.info("Cycle failed")
         channel = self.bot.get_channel(self.channel_id)
         await channel.send(f"<@&{self.role_id}>\n```Zemřeli jste!\nCyklus začal: {self.started_at.strftime('%H:%M:%S %d/%m/%Y')}\nIterací před smrtí: {self.iterations}```")
         self.iterations = 0
@@ -97,7 +99,7 @@ class LostModule(ModuleBase):
         if self.loop_running:
             await ctx.respond("To určite vole")
             return
-        info("Cycle started")
+        log.info(f"Cycle started by {ctx.user.name} (ID: {ctx.user.id})")
         await ctx.respond("So it begins...")
         self.can_reset = False
         self.iterations = 0
@@ -130,7 +132,7 @@ class LostModule(ModuleBase):
             await ctx.respond("Špatně!")
             return
         else:
-            info("Cycle reset")
+            log.info(f"Cycle reset by {ctx.user.name} ({ctx.user.id})")
             await ctx.respond(F"Přežijete... prozatím. See you in 4 hours {KOTESENI}")
             self.can_reset = False
             self.iterations += 1

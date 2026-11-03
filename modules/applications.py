@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import discord
+import logging
 import wikidot
 import random
 
 from discord.ext import tasks
 from core.modulebase import ModuleBase
-from logging import info, error
 from utils.discordutils import check_valid_interaction, ensure_user
 from utils.textutils import print_application_number
 from utils.wikidot import wd_appl_action, ApplAction
@@ -20,6 +20,7 @@ from core.singletons import config
 from core.models import User, ModelBase
 from peewee import (AutoField, IntegerField, CharField, TextField, TimestampField, BooleanField, ForeignKeyField)
 
+log = logging.getLogger(__name__)
 
 class WDAppConfirmView(discord.ui.View):
     def __init__(self, application, record: WDApplication, module: WikidotApplicationsModule):
@@ -34,7 +35,7 @@ class WDAppConfirmView(discord.ui.View):
         assert interaction.user is not None
         assert interaction.message is not None
 
-        info(f"Application for {self.application.user.name} was accepted by {interaction.user.name} (ID: {interaction.user.id})")
+        log.info(f"Application for {self.application.user.name} was accepted by {interaction.user.name} (ID: {interaction.user.id})")
         # Disable the buttons
         self.disable_all_items()
         embed = interaction.message.embeds[0]
@@ -62,7 +63,7 @@ class WDAppConfirmView(discord.ui.View):
 
         # TODO: Add rejection reason
         # (Maybe not? The reason doesn't even seem to show in wikidot mail)
-        info(f"Application for {self.application.user.name} was rejected by {interaction.user.name} (ID: {interaction.user.id})")
+        log.info(f"Application for {self.application.user.name} was rejected by {interaction.user.name} (ID: {interaction.user.id})")
         self.disable_all_items()
         embed = interaction.message.embeds[0]
         embed.colour = discord.Color.brand_red()
@@ -129,7 +130,7 @@ class WikidotApplicationsModule(ModuleBase):
     async def on_ready(self):
         if not self.check_applications.is_running() \
             and config.get("overrides.disable_application_check") != 'true':
-            info("Scheduled check task")
+            log.info("Scheduled check task")
             self.check_applications.start()
         else:
             self.check_applications.cancel()
@@ -146,7 +147,7 @@ class WikidotApplicationsModule(ModuleBase):
         await org_embed_msg.edit(embed=org_embed, view=org_view)
 
     async def handle_check_error(self, e: Exception):
-        error(f"Error encountered in check task: {e!r}")
+        log.error(f"Error encountered in check task: {e!r}")
         channel = cast(discord.TextChannel, self.bot.get_channel(self.console_channel))
 
         if self.retry_count <= 0:
@@ -155,7 +156,7 @@ class WikidotApplicationsModule(ModuleBase):
 
         # Only send a server ping when we're at this exact number of retries - once per fail series
         if self.current_retries < self.retry_count or self.current_retries > self.retry_count:
-            info(f"Error suppressed - retry {self.current_retries}")
+            log.info(f"Error suppressed - retry {self.current_retries}")
             self.current_retries += 1
             return
         elif self.current_retries == self.retry_count:
@@ -164,7 +165,7 @@ class WikidotApplicationsModule(ModuleBase):
 
     @tasks.loop(minutes=30)
     async def check_applications(self):
-        info("Running check task")
+        log.info("Running check task")
         count = 0
         try:
             with wikidot.Client(username=self.wiki_user, password=self.wiki_password) as client:
@@ -175,11 +176,11 @@ class WikidotApplicationsModule(ModuleBase):
                 for application in site.applications:
                     if(WDApplication.select()
                         .where((~WDApplication.resolved) & (WDApplication.user_id == application.user.id))):
-                        info(f"Skipping application for {application.user.name} (already in progress)")
+                        log.info(f"Skipping application for {application.user.name} (already in progress)")
                         continue # Application already in progress
                     count += 1
                     appl = WDApplication(user_id = application.user.id, username = application.user.name, unix_name = application.user.unix_name, text = application.text)
-                    info(f"New application recorded (User: {application.user})")
+                    log.info(f"New application recorded (User: {application.user})")
                     
                     embed = discord.Embed(
                         title="Žádost čeká na schválení",
@@ -193,7 +194,7 @@ class WikidotApplicationsModule(ModuleBase):
 
                 for unresolved in WDApplication.select().where(~WDApplication.resolved):
                     if not any(a.user.id == unresolved.user_id for a in site.applications):
-                        info(f"Application for {unresolved.username} seems to be resolved externally, marking as done.")
+                        log.info(f"Application for {unresolved.username} seems to be resolved externally, marking as done.")
                         unresolved.resolved = True
                         unresolved.resolved_externally = True
                         unresolved.accepted = None

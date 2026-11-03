@@ -1,8 +1,10 @@
 import discord
 from typing import cast
-from logging import info, error
+import logging
 from core.modulebase import ModuleBase
 from core.singletons import config
+
+log = logging.getLogger(__name__)
 
 class SimpleVerifyModule(ModuleBase):
     
@@ -52,7 +54,7 @@ class SimpleVerifyModule(ModuleBase):
             # Wrong channel
             return
         if not self.bot.user:
-            error("Client not connected")
+            log.error("Client not connected")
             return
         channel = cast(discord.abc.Messageable, await self.bot.fetch_channel(payload.channel_id))
         message = await channel.fetch_message(payload.message_id)
@@ -61,12 +63,12 @@ class SimpleVerifyModule(ModuleBase):
         
         guild = self.bot.get_guild(payload.guild_id)
         if not guild:
-            error(f"Guild {payload.guild_id} not found")
+            log.error(f"Guild {payload.guild_id} not found")
             return
         emoji = discord.PartialEmoji.from_str(self.reaction)
         if emoji == payload.emoji:
             role = await guild.fetch_role(self.role)
             member = await guild.fetch_member(payload.user_id)
             await member.add_roles(role)
-            info(f"[VERIFY] Added role {role.name} to user {member.name} ({member.id})")
+            log.info(f"[VERIFY] Added role {role.name} to user {member.name} ({member.id})")
         

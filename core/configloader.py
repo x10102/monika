@@ -1,10 +1,12 @@
 import json
 import os
 import copy
-from logging import error
+import logging
 from dotenv import load_dotenv
 from typing import Any, TypeVar, cast
 from utils.textutils import iterkeys_nested, flatten_nested
+
+log = logging.getLogger(__name__)
 
 type DescriptorOrPath = int | str | bytes | os.PathLike[str] | os.PathLike[bytes]
 
@@ -142,10 +144,10 @@ class ConfigLoader:
             with open(path, 'r', encoding='utf-8') as configfile:
                 self._config.update(json.load(configfile))
         except OSError as e:
-            error(f"Failed to load config: I/O error ({e!r})")
+            log.error(f"Failed to load config: I/O error ({e!r})")
             return False
         except json.JSONDecodeError as e:
-            error(f"Failed to load config: JSON decode error ({e!r})")
+            log.error(f"Failed to load config: JSON decode error ({e!r})")
             return False
         return True
 

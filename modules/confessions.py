@@ -1,5 +1,5 @@
 # Builtins
-from logging import info, error
+import logging
 
 # External
 import discord
@@ -10,6 +10,8 @@ from discord.ui import DesignerModal, InputText, Checkbox, Label, TextDisplay
 from core.singletons import config
 from core.modulebase import ModuleBase
 from core.botbase import MonikaBot
+
+log = logging.getLogger(__name__)
 
 class ConfessionModal(DesignerModal):
 
@@ -50,7 +52,7 @@ class ConfessionModal(DesignerModal):
         channel = await self.bot.fetch_channel(channel_id)
 
         if not isinstance(channel, discord.abc.Messageable):
-            error("Confessions channel is not messageable, this is probably a configuration error")
+            log.error("Confessions channel is not messageable, this is probably a configuration error")
             await ctx.respond("Při odesílání zprávy došlo k chybě, zkuste to prosím později.", ephemeral=True)
             return
 
@@ -58,9 +60,9 @@ class ConfessionModal(DesignerModal):
         await ctx.respond("Vaše zpráva byla odeslána administraci.", ephemeral=True)
 
         if self.anonymous.value:
-            info(f"Received anonymous confession. Text: {self.message.value}")
+            log.info(f"Received anonymous confession. Text: {self.message.value}")
         else:
-            info(f"Received confession from {ctx.user.name} (ID: {ctx.user.id}). Text: {self.message.value}")
+            log.info(f"Received confession from {ctx.user.name} (ID: {ctx.user.id}). Text: {self.message.value}")
 
 class ConfessionsModule(ModuleBase):
 

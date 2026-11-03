@@ -1,14 +1,16 @@
+import itertools
+import sys
+import logging
+
 from core.modulebase import ModuleBase
 import discord
 from discord.ext.commands import slash_command
-from logging import critical, info, warning
 from constants import PROGRAM_VERSION, CONFIG_LOCKED_KEYS
 from core.singletons import config
 from utils.textutils import string_to_json_type, JSONNull
 from core.botbase import MonikaBot
-import itertools
-import sys
-import aiofiles
+
+log = logging.getLogger(__name__)
 
 async def _autocomplete_cfg_key(ctx: discord.AutocompleteContext):
         return [k for k in config.print_all_keys() if ctx.value.lower() in k.lower()]
@@ -42,7 +44,7 @@ class BasicModule(ModuleBase):
     @discord.default_permissions(administrator=True)
     @discord.slash_command(name="kill", description="Ukončí bota v případě že se zblázní")
     async def kill_process(self, ctx: discord.ApplicationContext):
-        critical(f"Received emergency shutdown command from {ctx.user.name} ({ctx.user.id}), exiting immediately")
+        log.critical(f"Received emergency shutdown command from {ctx.user.name} ({ctx.user.id}), exiting immediately")
         await ctx.respond("Bylo mi ctí s vámi sloužit, kapitáne. *střelí se do hlavy*")
         await self.bot.close()
         # We never actually get to the exit() because bot.close() raises an exception somewhere in aiohttp
@@ -52,7 +54,7 @@ class BasicModule(ModuleBase):
     @discord.default_permissions(administrator=True)
     @slash_command(name="stats", description="Zobrazí statistiky")
     async def view_stats(self, ctx: discord.ApplicationContext):
-        info(f"Sending stats as response to {ctx.user.name} ({ctx.user.id})")
+        log.info(f"Sending stats as response to {ctx.user.name} ({ctx.user.id})")
         stats_text = f"```Monika.aic verze {PROGRAM_VERSION}\n"
         if extra_text := config.get('edition'):
             stats_text += extra_text
@@ -96,13 +98,13 @@ class BasicModule(ModuleBase):
                     name_localizations={"cs": "hodnota"})
     async def config_set_key(self, ctx: discord.ApplicationContext, key: str, value: str):
         if key in CONFIG_LOCKED_KEYS:
-            warning(f"Rejected request to change protected config key \"{key}\" to \"{value}\" by {ctx.user.name} (ID: {ctx.user.id})")
+            log.warning(f"Rejected request to change protected config key \"{key}\" to \"{value}\" by {ctx.user.name} (ID: {ctx.user.id})")
             await ctx.respond("Toto nastavení nelze z bezpečnostních důvodů změnit", ephemeral=True)
             return
         converted_val = string_to_json_type(value)
         if converted_val is None:
             await ctx.respond("Neplatný formát, všechny hodnoty seznamu musí být stejného typu", ephemeral=True)
-            info(f"Config key \"{key}\" was not changed to \"{value}\", couldn't parse list")
+            log.info(f"Config key \"{key}\" was not changed to \"{value}\", couldn't parse list")
             return
         current_type = type(config.get(key, None))
         if current_type is not type(None) and type(converted_val) is not current_type:
@@ -115,7 +117,7 @@ class BasicModule(ModuleBase):
             config.set(key, converted_val)
         try:
             config.write_to_json()
-            info(f"Config key \"{key}\" set to \"{value}\" by {ctx.user.name} (ID: {ctx.user.id})")
+            log.info(f"Config key \"{key}\" set to \"{value}\" by {ctx.user.name} (ID: {ctx.user.id})")
             await ctx.respond(f"Konfigurace `{key}` byla nastavena na hodnotu `{converted_val}`")
         except OSError:
             await ctx.respond("Konfiguraci nelze zapsat: Chyba I/O", ephemeral=True)
@@ -126,7 +128,7 @@ class BasicModule(ModuleBase):
     @discord.default_permissions(administrator=True)
     @slash_command(name="ping", description="Mňau")
     async def ping(self, ctx: discord.ApplicationContext):
-        info(f"Sending ping as response to {ctx.user.name} ({ctx.user.id})")
+        log.info(f"Sending ping as response to {ctx.user.name} ({ctx.user.id})")
         await ctx.respond("🐈")
 
     @discord.default_permissions(administrator=True)
@@ -144,14 +146,14 @@ class BasicModule(ModuleBase):
                         name_localizations={'cs': "zpráva"},
                         description_localizations={'cs': "Obsah zprávy"})
     async def say(self, ctx: discord.ApplicationContext, channel: discord.TextChannel, message: str):
-        info(f"Sending message \"{message}\" to channel {channel.id} at request of {ctx.user.name} ({ctx.user.id})")
+        log.info(f"Sending message \"{message}\" to channel {channel.id} at request of {ctx.user.name} ({ctx.user.id})")
         await channel.send(content=message)
         await ctx.respond("Zpráva odeslána", ephemeral=True)
 
     @discord.default_permissions(administrator=True)
     @discord.slash_command(name="synccommands", description="Synchronizuje příkazy s Discordem po aktualizaci, nepoužívat pokud nevíte co to znamená")
     async def cmd_sync(self, ctx: discord.ApplicationContext):
-        info(f"Synchronizing commands at request of {ctx.user.name} ({ctx.user.id})")
+        log.info(f"Synchronizing commands at request of {ctx.user.name} ({ctx.user.id})")
         await self.bot.sync_commands()
         await ctx.respond("Synchronizace dokončena, pro použití nových příkazů restartujte Discord (CTRL+R)", ephemeral=True)
 
@@ -159,14 +161,14 @@ class BasicModule(ModuleBase):
     @discord.slash_command(name="logs", description="Zobrazí protokol")
     async def send_logs(self, ctx: discord.ApplicationContext):
         log_filename: str = config.get_value('log_file')
-        info(f"Sending application logs at request of {ctx.user.name} (ID: {ctx.user.id})")
+        log.info(f"Sending application logs at request of {ctx.user.name} (ID: {ctx.user.id})")
         dfile = discord.File(fp=log_filename, filename="log.txt")
         await ctx.respond(file=dfile)
 
     @ModuleBase.listener()
     async def on_ready(self):
         if(config.get("overrides.sync_commands_on_startup", "false") == True):
-            info("Syncing commands")
+            log.info("Syncing commands")
             await self.bot.sync_commands()
             channel = self.bot.get_channel(self.console_id)
             await channel.send("Nové příkazy synchronizovány s Discord bot API, Čýmsi nezapomeň upravit .env")

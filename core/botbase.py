@@ -3,13 +3,15 @@ Implements the base class for the bot with some additional methods and attribute
 """
 
 # Builtins
-from logging import info
+import logging
 
 # Internal
 from .modulebase import ModuleBase
 
 # External
 from discord import Bot
+
+log = logging.getLogger(__name__)
 
 class MonikaBot(Bot):
 
@@ -18,7 +20,7 @@ class MonikaBot(Bot):
         self.__loaded_modules = []
 
     async def on_ready(self):
-        info(f"{self.user} is ready to go!")
+        log.info(f"{self.user} is ready to go!")
 
     @property
     def loaded_modules(self) -> list[ModuleBase]:

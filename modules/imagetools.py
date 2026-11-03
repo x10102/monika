@@ -1,10 +1,12 @@
 import discord
 import anyio
 import os.path
+import logging
 import io
 from PIL import Image
 from core.modulebase import ModuleBase
-from logging import warning, info
+
+log = logging.getLogger(__name__)
 
 class ImageToolsModule(ModuleBase):
     
@@ -23,14 +25,14 @@ class ImageToolsModule(ModuleBase):
     @discord.message_command(name="Vytvořit GIF")
     async def make_gif(self, ctx: discord.ApplicationContext, message: discord.Message):
         if not message:
-            warning("Context has empty message object, cannot complete command")
+            log.warning("Context has empty message object, cannot complete command")
             await ctx.respond("neco se posralo srry")
             return
         if len(message.attachments) == 0:
             await ctx.respond("bro... ten obrazek mi musis dat... 💔")
             return
         image_att = message.attachments[0]
-        info(f"Creating GIF from \"{image_att.filename}\" at request of {ctx.user.name} ({ctx.user.id})")
+        log.info(f"Creating GIF from \"{image_att.filename}\" at request of {ctx.user.name} ({ctx.user.id})")
         bytestream = io.BytesIO(await image_att.read(use_cached=False))
         image = Image.open(bytestream)
         

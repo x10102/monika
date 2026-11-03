@@ -4,9 +4,7 @@ import sys
 import pathlib
 
 # External
-from peewee import Model
 import logging
-from logging import info, warning, critical, error
 import nest_asyncio2 # type: ignore[import-untyped]
 import discord
 
@@ -29,6 +27,7 @@ from modules.shitpost import ShitpostModule
 from modules.simpleverify import SimpleVerifyModule
 
 bot = MonikaBot(intents=discord.Intents.all())
+log = logging.getLogger("monika")
 
 LOAD_MODULES: list[type[ModuleBase]] = [BasicModule,
                                         LostModule,
@@ -46,7 +45,7 @@ def setup_logger(filename="bot.log"):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    log_format = '[%(levelname).1s][%(asctime)s] %(message)s'
+    log_format = '[%(levelname)s][%(asctime)s][%(name)s] %(message)s'
     date_format = '%H-%M-%S %d-%m-%Y'
 
     formatter = logging.Formatter(log_format, datefmt=date_format)
@@ -62,7 +61,7 @@ def setup_logger(filename="bot.log"):
         
 @bot.slash_command(name='reload', description='Restartuje bota a znovu načte konfiguraci')
 async def reload(ctx: discord.ApplicationContext):
-    critical(f"Received restart command from {ctx.user.name} ({ctx.user.id})")
+    log.critical(f"Received restart command from {ctx.user.name} ({ctx.user.id})")
     await ctx.respond("Restartuji...")
     loaded = list(bot.cogs.keys())
     for cog in loaded:
@@ -76,43 +75,44 @@ async def reload(ctx: discord.ApplicationContext):
 def main():
     config.load_from_json()
     setup_logger(config.get("log_file", "bot.log"))
-    info("Logger initialized")
-    info(f"Monika.aic version {PROGRAM_VERSION} starting")
-    info("Applying nested asyncio patch")
+    logging.getLogger("discord.gateway").setLevel(logging.WARNING)
+    log.info("Logger initialized")
+    log.info(f"Monika.aic version {PROGRAM_VERSION} starting")
+    log.info("Applying nested asyncio patch")
     # This is needed for running the wikidot library alongside pycord as it uses its own asyncio loop
     nest_asyncio2.apply()
     
-    info("Initializing database")
+    log.info("Initializing database")
     database.init(config.get("db_file", "applications.db"))
     database.connect()
     database.create_tables(get_core_models())
 
-    info("Loading modules")
+    log.info("Loading modules")
 
     overrides = config.scope("overrides")
 
     for module in LOAD_MODULES:
         if overrides.get(module.env_override()):
-            info(f"Not loading module: {module.name()} - due to env override")
+            log.info(f"Not loading module: {module.name()} - due to env override")
             continue
         missing_required = config.keys_missing(module.config_required())
         if len(missing_required) != 0:
-            error(f"Not loading module {module.name()} - missing required config: [{', '.join(missing_required)}]")
+            log.error(f"Not loading module {module.name()} - missing required config: [{', '.join(missing_required)}]")
             continue
         try:
             required_models = module.required_models()
             database.create_tables(required_models)
             bot.load_module(module(bot))
-            info(f"Loaded module: {module.name()} (Created {len(required_models)} models)")
+            log.info(f"Loaded module: {module.name()} (Created {len(required_models)} models)")
         # TODO: This is redundant since we are checking for the required keys now
         except MissingConfigError:
-            warning(f"Not loading module: {module.name()} - due to missing configuration")
+            log.warning(f"Not loading module: {module.name()} - due to missing configuration")
         except Exception as e:
-            warning(f"Error while loading module: {module.name()}: {e!r}")
+            log.warning(f"Error while loading module: {module.name()}: {e!r}")
 
     token = config.get("bot_token")
     if not token:
-        critical("Discord API token is missing, cannot continue")
+        log.critical("Discord API token is missing, cannot continue")
         sys.exit(2)
 
     bot.run(token)
