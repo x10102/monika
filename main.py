@@ -62,6 +62,7 @@ def setup_logger(filename="bot.log"):
     # Reduce library log spam
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("discord.client").setLevel(logging.WARNING)
         
 @bot.slash_command(name='reload', description='Restartuje bota a znovu načte konfiguraci')
 async def reload(ctx: discord.ApplicationContext):
